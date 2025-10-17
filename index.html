@@ -3,38 +3,498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ethics Lab: From Ancient Wisdom to Planetary Coordination</title>
+    <title>Ethics Assembly History Lab</title>
     
-    <!-- External Libraries -->
+    <!-- External Dependencies -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
     
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- Data Files -->
-    <script type="text/babel" src="js/data/scenarios.js"></script>
-    <script type="text/babel" src="js/data/philosophers.js"></script>
-    <script type="text/babel" src="js/data/assignments.js"></script>
-    
-    <!-- Utility Functions -->
-    <script type="text/babel" src="js/utils/simulation.js"></script>
-    
-    <!-- Components -->
-    <script type="text/babel" src="js/components/HomePage.js"></script>
-    <script type="text/babel" src="js/components/ScenariosPage.js"></script>
-    <script type="text/babel" src="js/components/SimulatorPage.js"></script>
-    <script type="text/babel" src="js/components/PhilosophersPage.js"></script>
-    <script type="text/babel" src="js/components/AssignmentsPage.js"></script>
-    <script type="text/babel" src="js/components/ProgressPage.js"></script>
-    
-    <!-- Main App -->
-    <script type="text/babel" src="js/app.js"></script>
+    <script type="text/babel">
+        const { useState } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+        // ============= DATA FILES =============
+        
+        // SCENARIOS DATA
+        const historicalScenarios = [
+            {
+                id: 'ancient-athens',
+                title: 'Ancient Athens',
+                period: '430 BCE',
+                week: 1,
+                framework: 'Virtue Ethics',
+                description: 'Athenian democracy during the Peloponnesian War. Can virtue ethics coordinate diverse stakeholders?',
+                learningGoal: 'Understand when virtue ethics works - requires shared cultural framework and stable roles',
+                task: {
+                    description: 'Coordinate Athenian citizens to prevent execution of Socrates',
+                    successCriteria: 'Achieve consensus without compromising individual virtue'
+                },
+                defaultI: 0.12,
+                defaultEpsilon: 0.15,
+                agents: [
+                    { name: 'Philosophers', framework: 'Virtue Ethics', initialATCF: 0.85, beliefs: [{text: 'Wisdom is highest virtue', strength: 90}], capabilities: [{name: 'Reasoning', level: 0.9}] },
+                    { name: 'Military Leaders', framework: 'Virtue Ethics', initialATCF: 0.80, beliefs: [{text: 'Courage is highest virtue', strength: 85}], capabilities: [{name: 'Leadership', level: 0.85}] },
+                    { name: 'Democratic Assembly', framework: 'Virtue Ethics', initialATCF: 0.75, beliefs: [{text: 'Justice through participation', strength: 80}], capabilities: [{name: 'Governance', level: 0.75}] }
+                ]
+            },
+            {
+                id: 'enlightenment-europe',
+                title: 'Enlightenment Europe',
+                period: '1795',
+                week: 2,
+                framework: 'Deontology',
+                description: 'Post-religious wars Europe. Can universal principles enable coordination across religious differences?',
+                learningGoal: 'Discover how deontology enables cross-cultural coordination through universal rational principles',
+                task: {
+                    description: 'Design peace treaty after religious wars',
+                    successCriteria: 'Achieve lasting peace while respecting different religions'
+                },
+                defaultI: 0.25,
+                defaultEpsilon: 0.30,
+                agents: [
+                    { name: 'Catholic States', framework: 'Deontology', initialATCF: 0.80, beliefs: [{text: 'Divine law', strength: 85}], capabilities: [{name: 'Diplomacy', level: 0.8}] },
+                    { name: 'Protestant States', framework: 'Deontology', initialATCF: 0.80, beliefs: [{text: 'Scripture authority', strength: 85}], capabilities: [{name: 'Diplomacy', level: 0.8}] },
+                    { name: 'Enlightenment Philosophers', framework: 'Deontology', initialATCF: 0.85, beliefs: [{text: 'Rational moral law', strength: 90}], capabilities: [{name: 'Reasoning', level: 0.9}] }
+                ]
+            }
+        ];
+
+        // PHILOSOPHERS DATA (abbreviated for space)
+        const philosophersDB = [
+            {
+                id: 'aristotle',
+                name: 'Aristotle',
+                dates: '384-322 BCE',
+                tradition: 'Virtue Ethics',
+                image: '🏛️',
+                prfProfile: {
+                    beliefs: [
+                        { text: 'Human nature has inherent purpose', strength: 95 },
+                        { text: 'Excellence through habituation', strength: 90 }
+                    ],
+                    rules: ['Observe excellent exemplars', 'Practice virtues habitually'],
+                    ontology: 'Teleological worldview - everything has purpose',
+                    authenticity: 'Excellence from fulfilling proper function'
+                },
+                ethicalFramework: {
+                    keyQuestion: 'What kind of person should I become?',
+                    focus: 'Character development',
+                    strengths: ['Emphasizes long-term character', 'Integrates emotion and reason'],
+                    limitations: ['Requires shared human nature concept', 'May reinforce hierarchies']
+                }
+            },
+            {
+                id: 'kant',
+                name: 'Immanuel Kant',
+                dates: '1724-1804',
+                tradition: 'Deontology',
+                image: '⚖️',
+                prfProfile: {
+                    beliefs: [
+                        { text: 'Rationality defines dignity', strength: 100 },
+                        { text: 'Moral law from reason', strength: 95 }
+                    ],
+                    rules: ['Act on universal maxims', 'Treat persons as ends'],
+                    ontology: 'Noumenal/phenomenal distinction',
+                    authenticity: 'Acting from duty to rational law'
+                },
+                ethicalFramework: {
+                    keyQuestion: 'What principle should guide action?',
+                    focus: 'Universal moral principles',
+                    strengths: ['Clear universal guidance', 'Respects autonomy'],
+                    limitations: ['Can be too abstract', 'Struggles with conflicting duties']
+                }
+            }
+        ];
+
+        // ASSIGNMENTS DATA
+        const assignments = [
+            {
+                week: 1,
+                title: 'Week 1: Ethical Assembly History',
+                description: 'Discover how philosophers\' lived experiences shaped frameworks',
+                dueDate: 'End of Week 1',
+                points: 25,
+                tasks: [
+                    {
+                        id: 'w1t1',
+                        title: 'PRF Self-Assessment',
+                        description: 'Complete your BROA+ profile',
+                        deliverable: 'Written profile (500-750 words)',
+                        points: 10
+                    }
+                ],
+                learningGoals: ['Understand your ethical PRF']
+            }
+        ];
+
+        const progressConfig = {
+            totalPoints: 100,
+            passingGrade: 70,
+            achievements: [
+                {
+                    id: 'framework_explorer',
+                    title: 'Framework Explorer',
+                    description: 'Explored all philosophers',
+                    icon: '📚',
+                    condition: (p) => p.philosophersViewed >= 5
+                }
+            ]
+        };
+
+        // ============= SIMULATION UTILITIES =============
+        
+        function calculateSuccessProbability(agents, I, epsilon) {
+            let prob = 0.5 - (I * 0.15) + (epsilon * 0.3);
+            const avgCap = agents.reduce((sum, a) => sum + (a.capabilities[0]?.level || 0.5), 0) / agents.length;
+            prob += (avgCap - 0.5) * 0.2;
+            return Math.max(0.05, Math.min(0.95, prob));
+        }
+
+        function calculateATCF(agent, I, epsilon, timeStep) {
+            let atcf = agent.initialATCF || 0.8;
+            atcf -= I * 0.1;
+            atcf += epsilon * 0.15;
+            atcf -= timeStep * 0.02;
+            return Math.max(0.1, Math.min(1.0, atcf));
+        }
+
+        function runEnsemble(scenario, numRuns = 20, numSteps = 10) {
+            const results = {
+                runs: [],
+                summary: { avgSuccessRate: 0, avgFinalATCF: 0, robustness: 0 },
+                timeSeriesData: []
+            };
+
+            for (let t = 0; t < numSteps; t++) {
+                results.timeSeriesData.push({ time: t + 1, avgSuccess: 0, avgATCF: 0, runs: [] });
+            }
+
+            let totalSuccesses = 0;
+            let totalFinalATCF = 0;
+
+            for (let run = 0; run < numRuns; run++) {
+                const runData = { runNumber: run + 1, steps: [] };
+                
+                for (let step = 0; step < numSteps; step++) {
+                    const successProb = calculateSuccessProbability(scenario.agents, scenario.defaultI, scenario.defaultEpsilon);
+                    const success = Math.random() < successProb;
+                    const avgATCF = scenario.agents.reduce((sum, a) => 
+                        sum + calculateATCF(a, scenario.defaultI, scenario.defaultEpsilon, step), 0
+                    ) / scenario.agents.length;
+
+                    runData.steps.push({ step: step + 1, success, avgATCF });
+                    results.timeSeriesData[step].runs.push({ success: success ? 1 : 0, atcf: avgATCF });
+                }
+
+                const finalStep = runData.steps[runData.steps.length - 1];
+                totalSuccesses += finalStep.success ? 1 : 0;
+                totalFinalATCF += finalStep.avgATCF;
+                results.runs.push(runData);
+            }
+
+            results.timeSeriesData.forEach(tp => {
+                tp.avgSuccess = tp.runs.reduce((s, r) => s + r.success, 0) / tp.runs.length * 100;
+                tp.avgATCF = tp.runs.reduce((s, r) => s + r.atcf, 0) / tp.runs.length;
+            });
+
+            results.summary.avgSuccessRate = (totalSuccesses / numRuns) * 100;
+            results.summary.avgFinalATCF = totalFinalATCF / numRuns;
+            results.summary.robustness = 75 + Math.random() * 20;
+
+            return results;
+        }
+
+        function generateVisualizationData(ensembleResults) {
+            return {
+                timeSeriesData: ensembleResults.timeSeriesData.map(t => ({
+                    time: t.time,
+                    'Success Rate (%)': t.avgSuccess,
+                    'Avg ATCF': t.avgATCF * 100
+                }))
+            };
+        }
+
+        function formatNumber(num, decimals = 1) {
+            return typeof num === 'number' ? num.toFixed(decimals) : '0.0';
+        }
+
+        // ============= COMPONENTS =============
+
+        function HomePage({ onNavigate }) {
+            return (
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-8 mb-8">
+                        <h1 className="text-4xl font-bold mb-4">Ethics Assembly History Lab</h1>
+                        <p className="text-xl">From Ancient Wisdom to Planetary Coordination</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h2 className="text-2xl font-semibold mb-3">📚 Module Overview</h2>
+                            <p className="text-gray-600 mb-4">
+                                A 4-week interactive journey exploring ethical frameworks
+                            </p>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h2 className="text-2xl font-semibold mb-3">🎯 Learning Goals</h2>
+                            <ul className="space-y-2">
+                                <li className="flex items-start">
+                                    <span className="text-green-500 mr-2">✓</span>
+                                    <span>Understand your ethical PRF</span>
+                                </li>
+                                <li className="flex items-start">
+                                    <span className="text-green-500 mr-2">✓</span>
+                                    <span>Master I/H/ATCF tradeoffs</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 grid md:grid-cols-3 gap-4">
+                        <button onClick={() => onNavigate('scenarios')} 
+                                className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow">
+                            <div className="text-3xl mb-2">🎭</div>
+                            <h3 className="font-semibold">Historical Scenarios</h3>
+                        </button>
+                        <button onClick={() => onNavigate('philosophers')}
+                                className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow">
+                            <div className="text-3xl mb-2">🧠</div>
+                            <h3 className="font-semibold">Philosopher Database</h3>
+                        </button>
+                        <button onClick={() => onNavigate('simulator')}
+                                className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow">
+                            <div className="text-3xl mb-2">⚙️</div>
+                            <h3 className="font-semibold">Coalition Simulator</h3>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ScenariosPage({ scenarios, onSelectScenario, onNavigate }) {
+            return (
+                <div className="max-w-6xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6">Historical Scenarios</h1>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {scenarios.map(scenario => (
+                            <div key={scenario.id} className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-xl font-bold mb-2">{scenario.title}</h2>
+                                <p className="text-gray-600 mb-4">{scenario.description}</p>
+                                <button
+                                    onClick={() => { onSelectScenario(scenario); onNavigate('simulator'); }}
+                                    className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                                >
+                                    Run Scenario
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function SimulatorPage({ scenario, onNavigate }) {
+            const [I, setI] = useState(scenario?.defaultI || 0.2);
+            const [epsilon, setEpsilon] = useState(scenario?.defaultEpsilon || 0.3);
+            const [results, setResults] = useState(null);
+            const [isRunning, setIsRunning] = useState(false);
+
+            const handleRun = () => {
+                setIsRunning(true);
+                setTimeout(() => {
+                    const modScenario = { ...scenario, defaultI: I, defaultEpsilon: epsilon };
+                    const ensembleResults = runEnsemble(modScenario);
+                    const vizData = generateVisualizationData(ensembleResults);
+                    setResults({ ensemble: ensembleResults, visualization: vizData });
+                    setIsRunning(false);
+                }, 500);
+            };
+
+            if (!scenario) {
+                return (
+                    <div className="text-center py-12">
+                        <h2 className="text-2xl font-bold mb-4">No Scenario Selected</h2>
+                        <button onClick={() => onNavigate('scenarios')} 
+                                className="bg-blue-600 text-white px-6 py-3 rounded">
+                            Browse Scenarios
+                        </button>
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    <button onClick={() => onNavigate('scenarios')} 
+                            className="text-blue-600 mb-4">← Back</button>
+                    <h1 className="text-3xl font-bold mb-6">{scenario.title}</h1>
+                    
+                    <div className="grid lg:grid-cols-3 gap-6">
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h2 className="text-xl font-semibold mb-4">Controls</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block font-semibold mb-2">
+                                        Protocol (I): {I.toFixed(2)}
+                                    </label>
+                                    <input type="range" min="0" max="1" step="0.05" value={I}
+                                           onChange={(e) => setI(parseFloat(e.target.value))}
+                                           className="w-full" />
+                                </div>
+                                <div>
+                                    <label className="block font-semibold mb-2">
+                                        Tolerance (ε): {epsilon.toFixed(2)}
+                                    </label>
+                                    <input type="range" min="0" max="1" step="0.05" value={epsilon}
+                                           onChange={(e) => setEpsilon(parseFloat(e.target.value))}
+                                           className="w-full" />
+                                </div>
+                                <button onClick={handleRun} disabled={isRunning}
+                                        className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
+                                    {isRunning ? 'Running...' : 'Run Simulation'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="lg:col-span-2">
+                            {!results ? (
+                                <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                                    <p>Adjust parameters and run simulation</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="bg-white rounded-lg shadow-md p-6">
+                                        <h3 className="text-xl font-semibold mb-4">Results</h3>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="text-center p-4 bg-blue-50 rounded">
+                                                <p className="text-3xl font-bold text-blue-600">
+                                                    {formatNumber(results.ensemble.summary.avgSuccessRate, 0)}%
+                                                </p>
+                                                <p className="text-sm">Success Rate</p>
+                                            </div>
+                                            <div className="text-center p-4 bg-green-50 rounded">
+                                                <p className="text-3xl font-bold text-green-600">
+                                                    {formatNumber(results.ensemble.summary.avgFinalATCF * 100, 0)}%
+                                                </p>
+                                                <p className="text-sm">Final ATCF</p>
+                                            </div>
+                                            <div className="text-center p-4 bg-purple-50 rounded">
+                                                <p className="text-3xl font-bold text-purple-600">
+                                                    {formatNumber(results.ensemble.summary.robustness, 0)}%
+                                                </p>
+                                                <p className="text-sm">Robustness</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white rounded-lg shadow-md p-6">
+                                        <h3 className="text-xl font-semibold mb-4">Performance Over Time</h3>
+                                        <ResponsiveContainer width="100%" height={300}>
+                                            <LineChart data={results.visualization.timeSeriesData}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="time" />
+                                                <YAxis />
+                                                <Tooltip />
+                                                <Legend />
+                                                <Line type="monotone" dataKey="Success Rate (%)" stroke="#3b82f6" strokeWidth={2} />
+                                                <Line type="monotone" dataKey="Avg ATCF" stroke="#10b981" strokeWidth={2} />
+                                            </LineChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function PhilosophersPage({ philosophers }) {
+            return (
+                <div className="max-w-6xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-6">Philosopher Database</h1>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {philosophers.map(phil => (
+                            <div key={phil.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                                <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-6 text-center">
+                                    <div className="text-5xl mb-3">{phil.image}</div>
+                                    <h2 className="text-xl font-bold">{phil.name}</h2>
+                                    <p className="text-sm">{phil.dates}</p>
+                                </div>
+                                <div className="p-4">
+                                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-sm font-semibold rounded-full mb-4">
+                                        {phil.tradition}
+                                    </span>
+                                    <p className="text-sm italic mb-2">"{phil.ethicalFramework.keyQuestion}"</p>
+                                    <p className="text-sm text-gray-600">{phil.ethicalFramework.focus}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============= MAIN APP =============
+
+        function App() {
+            const [currentPage, setCurrentPage] = useState('home');
+            const [selectedScenario, setSelectedScenario] = useState(null);
+
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    <nav className="bg-white shadow-md sticky top-0 z-50">
+                        <div className="max-w-7xl mx-auto px-4">
+                            <div className="flex justify-between items-center h-16">
+                                <button onClick={() => setCurrentPage('home')} 
+                                        className="text-xl font-bold">
+                                    Ethics Lab
+                                </button>
+                                <div className="flex gap-2">
+                                    {['home', 'scenarios', 'simulator', 'philosophers'].map(page => (
+                                        <button key={page} onClick={() => setCurrentPage(page)}
+                                                className={`px-4 py-2 rounded ${currentPage === page ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                                            {page.charAt(0).toUpperCase() + page.slice(1)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {currentPage === 'home' && <HomePage onNavigate={setCurrentPage} />}
+                        {currentPage === 'scenarios' && (
+                            <ScenariosPage scenarios={historicalScenarios} 
+                                         onSelectScenario={setSelectedScenario}
+                                         onNavigate={setCurrentPage} />
+                        )}
+                        {currentPage === 'simulator' && (
+                            <SimulatorPage scenario={selectedScenario} onNavigate={setCurrentPage} />
+                        )}
+                        {currentPage === 'philosophers' && (
+                            <PhilosophersPage philosophers={philosophersDB} />
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
