@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ethics Assembly History Lab</title>
+    <title>Ethics Assembly History Lab - Enhanced</title>
     
-    <!-- CDN Dependencies -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -15,7 +14,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         
-        /* Simple chart styles */
         .chart-container {
             position: relative;
             height: 300px;
@@ -25,7 +23,6 @@
         }
         .chart-bar {
             display: inline-block;
-            background: linear-gradient(to top, #3b82f6, #60a5fa);
             margin: 0 2px;
             border-radius: 4px 4px 0 0;
             transition: all 0.3s;
@@ -34,278 +31,354 @@
             opacity: 0.8;
             transform: translateY(-2px);
         }
+        
+        /* AI Tutor styles */
+        .tutor-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+        .tutor-button:hover {
+            transform: scale(1.1);
+        }
+        .tutor-panel {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 400px;
+            max-height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        .tutor-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            max-height: 450px;
+        }
+        .message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            max-width: 85%;
+        }
+        .message-user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+        .message-tutor {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+        
+        /* Glossary tooltip */
+        .glossary-term {
+            cursor: help;
+            border-bottom: 2px dotted #3b82f6;
+            position: relative;
+        }
+        .glossary-term:hover {
+            color: #3b82f6;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // ========== ALL 6 SCENARIOS ==========
-        const scenarios = [
-            {
-                id: 'ancient-athens',
-                title: 'Ancient Athens',
-                period: '430 BCE',
-                week: 1,
-                framework: 'Virtue Ethics',
-                description: 'Athenian democracy during the Peloponnesian War. Can virtue ethics coordinate diverse stakeholders when cultural consensus exists?',
-                learningGoal: 'Understand when virtue ethics works - requires shared cultural framework and stable social roles',
-                task: { description: 'Coordinate Athenian citizens to prevent execution of Socrates', successCriteria: 'Achieve consensus without compromising individual virtue' },
-                defaultI: 0.12,
-                defaultEpsilon: 0.15,
-                agents: [
-                    { name: 'Philosophers', framework: 'Virtue Ethics', initialATCF: 0.85, beliefs: [{text: 'Wisdom is highest virtue', strength: 90}], capabilities: [{name: 'Reasoning', level: 0.9}] },
-                    { name: 'Military Leaders', framework: 'Virtue Ethics', initialATCF: 0.80, beliefs: [{text: 'Courage is highest virtue', strength: 85}], capabilities: [{name: 'Leadership', level: 0.85}] },
-                    { name: 'Democratic Assembly', framework: 'Virtue Ethics', initialATCF: 0.75, beliefs: [{text: 'Justice through participation', strength: 80}], capabilities: [{name: 'Governance', level: 0.75}] }
-                ]
+        // ========== GLOSSARY DEFINITIONS ==========
+        const glossary = {
+            'I': {
+                term: 'Protocol Complexity (I)',
+                definition: 'Measures how many rules and procedures a coalition requires. Higher I means more detailed protocols, creating more friction but potentially ensuring quality. Range: 0.0 (no rules) to 1.0 (extremely detailed protocols).',
+                example: 'Ancient Athens had low I (0.12) - simple shared cultural norms. Climate negotiations have high I (0.35) - complex international treaties.'
             },
-            {
-                id: 'enlightenment-europe',
-                title: 'Enlightenment Europe',
-                period: '1795',
-                week: 2,
-                framework: 'Deontology',
-                description: 'Post-religious wars Europe. Can universal principles enable coordination across religious differences?',
-                learningGoal: 'Discover how deontology enables cross-cultural coordination through universal rational principles',
-                task: { description: 'Design peace treaty after religious wars', successCriteria: 'Achieve lasting peace while respecting different religions' },
-                defaultI: 0.25,
-                defaultEpsilon: 0.30,
-                agents: [
-                    { name: 'Catholic States', framework: 'Deontology', initialATCF: 0.80, beliefs: [{text: 'Divine law', strength: 85}], capabilities: [{name: 'Diplomacy', level: 0.8}] },
-                    { name: 'Protestant States', framework: 'Deontology', initialATCF: 0.80, beliefs: [{text: 'Scripture authority', strength: 85}], capabilities: [{name: 'Diplomacy', level: 0.8}] },
-                    { name: 'Enlightenment Philosophers', framework: 'Deontology', initialATCF: 0.85, beliefs: [{text: 'Rational moral law', strength: 90}], capabilities: [{name: 'Reasoning', level: 0.9}] }
-                ]
+            'epsilon': {
+                term: 'Tolerance for Difference (ε)',
+                definition: 'Measures how much diversity in beliefs and approaches the coalition can accommodate. Higher ε means groups can maintain different frameworks while coordinating. Range: 0.0 (requires uniformity) to 1.0 (welcomes radical difference).',
+                example: 'Green Belt Movement had high ε (0.40) - welcomed feminists, scientists, traditional women with different motivations.'
             },
-            {
-                id: 'industrial-revolution',
-                title: 'Industrial Revolution',
-                period: '1833',
-                week: 2,
-                framework: 'Consequentialism',
-                description: 'Factory conditions in Industrial Britain. Can consequentialist thinking enable reform across ideological divides?',
-                learningGoal: 'See how measurable outcomes break ideological deadlock when suffering is visible',
-                task: { description: 'Pass Factory Act to limit child labor', successCriteria: 'Reduce working hours for children under 13' },
-                defaultI: 0.08,
-                defaultEpsilon: 0.35,
-                agents: [
-                    { name: 'Factory Owners', framework: 'Consequentialism', initialATCF: 0.75, beliefs: [{text: 'Economic growth benefits all', strength: 80}], capabilities: [{name: 'Industry', level: 0.85}] },
-                    { name: 'Reform Activists', framework: 'Consequentialism', initialATCF: 0.85, beliefs: [{text: 'Reduce measurable suffering', strength: 90}], capabilities: [{name: 'Advocacy', level: 0.8}] },
-                    { name: 'Parliament Members', framework: 'Consequentialism', initialATCF: 0.80, beliefs: [{text: 'Balance interests', strength: 85}], capabilities: [{name: 'Legislation', level: 0.75}] }
-                ]
+            'ATCF': {
+                term: 'Authentic Temporal Coherence of Form',
+                definition: 'Measures whether each group maintains its authentic identity over time while coordinating. When ATCF drops, groups feel they\'re compromising core values. Healthy coalitions maintain ATCF > 0.7.',
+                example: 'If Catholic and Protestant states maintain their religious identities while making peace, both have high ATCF.'
             },
-            {
-                id: 'green-belt-movement',
-                title: 'Green Belt Movement',
-                period: '1977-2006',
-                week: 3,
-                framework: 'Complexity Ethics',
-                description: 'Kenya environmental restoration. Can diverse groups coordinate through functional equivalence rather than shared beliefs?',
-                learningGoal: 'Discover how minimal protocol + high tolerance enables unprecedented coordination across radical difference',
-                task: { description: 'Plant 51 million trees across Kenya', successCriteria: 'Coordinate traditional women, scientists, feminists, religious leaders' },
-                defaultI: 0.01,
-                defaultEpsilon: 0.40,
-                agents: [
-                    { name: 'Traditional Women', framework: 'Care Ethics', initialATCF: 0.85, beliefs: [{text: 'Trees = survival', strength: 95}], capabilities: [{name: 'Planting', level: 0.9}] },
-                    { name: 'Environmental Scientists', framework: 'Consequentialism', initialATCF: 0.80, beliefs: [{text: 'Restore ecosystems', strength: 90}], capabilities: [{name: 'Ecology', level: 0.95}] },
-                    { name: 'Feminist Activists', framework: 'Deontology', initialATCF: 0.85, beliefs: [{text: 'Women\'s empowerment', strength: 90}], capabilities: [{name: 'Organizing', level: 0.85}] },
-                    { name: 'Religious Leaders', framework: 'Virtue Ethics', initialATCF: 0.80, beliefs: [{text: 'Stewardship duty', strength: 85}], capabilities: [{name: 'Community', level: 0.8}] }
-                ]
+            'PRF': {
+                term: 'Personal Reasoning Framework',
+                definition: 'The combination of Beliefs, Rules, Ontology, and Authenticity criteria that shape how someone approaches moral decisions. Your PRF is your ethical "operating system".',
+                example: 'Kant\'s PRF emphasized rational principles and duty. Gilligan\'s PRF emphasized relationships and care. Both valid, different approaches.'
             },
-            {
-                id: 'climate-change',
-                title: 'Climate Change',
-                period: '2015-present',
-                week: 4,
-                framework: 'Traditional Frameworks Failing',
-                description: 'Paris Agreement coordination. Why do traditional frameworks struggle at planetary scale with existential stakes?',
-                learningGoal: 'Understand why value pluralism + existential stakes require capability-based coordination',
-                task: { description: 'Limit global warming to 1.5°C', successCriteria: 'Coordinate 195 nations with incompatible value systems' },
-                defaultI: 0.35,
-                defaultEpsilon: 0.20,
-                agents: [
-                    { name: 'Developed Nations', framework: 'Mixed', initialATCF: 0.75, beliefs: [{text: 'Economic growth priority', strength: 80}], capabilities: [{name: 'Technology', level: 0.85}] },
-                    { name: 'Developing Nations', framework: 'Mixed', initialATCF: 0.75, beliefs: [{text: 'Development right', strength: 85}], capabilities: [{name: 'Resources', level: 0.6}] },
-                    { name: 'Indigenous Communities', framework: 'Mixed', initialATCF: 0.80, beliefs: [{text: 'Land stewardship', strength: 90}], capabilities: [{name: 'Traditional knowledge', level: 0.8}] },
-                    { name: 'Climate Scientists', framework: 'Mixed', initialATCF: 0.85, beliefs: [{text: 'Urgent action needed', strength: 95}], capabilities: [{name: 'Research', level: 0.95}] }
-                ]
-            },
-            {
-                id: 'ai-safety',
-                title: 'AI Safety',
-                period: '2025-2035',
-                week: 4,
-                framework: 'Complexity Ethics Required',
-                description: 'Coordinating safe AI development across nations, corporations, and cultures with fundamentally different values.',
-                learningGoal: 'Apply complexity ethics to novel challenges requiring coordination despite uncertainty and disagreement',
-                task: { description: 'Ensure safe AGI development', successCriteria: 'Coordinate researchers, governments, ethicists, public across value differences' },
-                defaultI: 0.15,
-                defaultEpsilon: 0.45,
-                agents: [
-                    { name: 'AI Researchers', framework: 'Mixed', initialATCF: 0.85, beliefs: [{text: 'Technical safety focus', strength: 90}], capabilities: [{name: 'AI development', level: 0.95}] },
-                    { name: 'Government Regulators', framework: 'Mixed', initialATCF: 0.80, beliefs: [{text: 'National security', strength: 85}], capabilities: [{name: 'Policy', level: 0.75}] },
-                    { name: 'Ethicists', framework: 'Mixed', initialATCF: 0.85, beliefs: [{text: 'Value alignment', strength: 90}], capabilities: [{name: 'Ethics', level: 0.9}] },
-                    { name: 'Public Representatives', framework: 'Mixed', initialATCF: 0.75, beliefs: [{text: 'Democratic input', strength: 80}], capabilities: [{name: 'Advocacy', level: 0.7}] }
-                ]
+            'functional equivalence': {
+                term: 'Functional Equivalence',
+                definition: 'The key insight of complexity ethics: groups with different beliefs can coordinate by achieving compatible OUTCOMES rather than agreeing on reasons. They "plant trees" for different reasons but the trees still get planted.',
+                example: 'Scientists plant trees for ecosystem restoration, women for firewood, feminists for empowerment - same outcome, different motivations.'
             }
-        ];
+        };
 
-        // ========== ALL 5 PHILOSOPHERS ==========
-        const philosophers = [
-            {
-                id: 'aristotle',
-                name: 'Aristotle',
-                dates: '384-322 BCE',
-                tradition: 'Virtue Ethics',
-                image: '🏛️',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Human nature has inherent purpose (telos)', strength: 95 },
-                        { text: 'Excellence achieved through habituation', strength: 90 },
-                        { text: 'Practical wisdom guides ethical action', strength: 95 },
-                        { text: 'Character development requires community', strength: 85 }
-                    ],
-                    rules: ['Observe excellent exemplars systematically', 'Practice virtues until they become habitual', 'Seek the mean between extremes', 'Develop phronesis (practical wisdom) through experience'],
-                    ontology: 'Teleological view of nature; everything has proper function and purpose. Reality understood through four causes. Hierarchical natural order.',
-                    authenticity: 'Excellence emerges from fulfilling one\'s proper function within community. Authentic living means actualizing human potential through virtuous character.'
+        // ========== ENHANCED SCENARIO WITH DIFFERENTIATED AGENTS ==========
+        const enhancedGreenBeltScenario = {
+            id: 'green-belt-enhanced',
+            title: 'Green Belt Movement (Enhanced)',
+            period: '1977-2006',
+            week: 3,
+            framework: 'Complexity Ethics in Action',
+            description: 'Real coordination across radical difference. Each group has DIFFERENT frameworks and motivations, yet achieves shared outcome through functional equivalence.',
+            learningGoal: 'See how minimal protocol + high tolerance enables groups with incompatible beliefs to coordinate effectively',
+            task: { description: 'Plant 51 million trees across Kenya', successCriteria: 'All groups maintain authenticity while achieving shared outcome' },
+            defaultI: 0.01,
+            defaultEpsilon: 0.40,
+            agents: [
+                {
+                    name: 'Traditional Women',
+                    framework: 'Care Ethics',
+                    initialATCF: 0.85,
+                    motivation: 'Survival and family care',
+                    reasoning: 'Trees provide firewood and prevent soil erosion that threatens our farms',
+                    decisionStyle: 'Context-dependent, relationship-focused',
+                    capabilities: [{name: 'Tree planting', level: 0.9}, {name: 'Local knowledge', level: 0.95}],
+                    beliefs: [{text: 'Care for family and community', strength: 95}],
+                    color: '#10b981'
                 },
-                ethicalFramework: {
-                    keyQuestion: 'What kind of person should I become?',
-                    focus: 'Character development and human flourishing',
-                    strengths: ['Emphasizes long-term character over isolated acts', 'Integrates emotion and reason', 'Recognizes role of community and exemplars', 'Provides rich conception of good life'],
-                    limitations: ['Requires shared conception of human nature', 'May reinforce existing hierarchies', 'Difficult to apply across cultural differences', 'Less clear guidance for novel situations']
+                {
+                    name: 'Environmental Scientists',
+                    framework: 'Consequentialism',
+                    initialATCF: 0.80,
+                    motivation: 'Ecosystem restoration',
+                    reasoning: 'Deforestation causes measurable harm; reforestation produces measurable benefits',
+                    decisionStyle: 'Evidence-based, outcome-focused',
+                    capabilities: [{name: 'Ecology expertise', level: 0.95}, {name: 'Research', level: 0.9}],
+                    beliefs: [{text: 'Maximize ecosystem health', strength: 90}],
+                    color: '#3b82f6'
                 },
-                modernRelevance: ['Professional ethics (medicine, law, business)', 'Character education in schools', 'Leadership development programs', 'Community-based moral formation']
-            },
-            {
-                id: 'kant',
-                name: 'Immanuel Kant',
-                dates: '1724-1804',
-                tradition: 'Deontology',
-                image: '⚖️',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Rationality defines human dignity', strength: 100 },
-                        { text: 'Moral law discoverable by reason alone', strength: 95 },
-                        { text: 'Autonomy is fundamental to ethics', strength: 95 },
-                        { text: 'Duty supersedes inclination', strength: 90 }
-                    ],
-                    rules: ['Act only on maxims you can will as universal law', 'Treat persons as ends in themselves, never merely as means', 'Act as if legislating for a kingdom of ends', 'Test moral principles for logical consistency'],
-                    ontology: 'Noumenal/phenomenal distinction. Freedom exists in noumenal realm. Humans belong to both natural world (causally determined) and moral world (free).',
-                    authenticity: 'Acting from duty to rational moral law, not from inclination or emotion. Authentic moral agency requires autonomous rational will.'
+                {
+                    name: 'Feminist Activists',
+                    framework: 'Deontology (Rights-based)',
+                    initialATCF: 0.85,
+                    motivation: 'Women\'s empowerment and rights',
+                    reasoning: 'Women have right to economic independence; tree planting provides income',
+                    decisionStyle: 'Principle-driven, justice-focused',
+                    capabilities: [{name: 'Political organizing', level: 0.85}, {name: 'Advocacy', level: 0.9}],
+                    beliefs: [{text: 'Women\'s dignity and rights', strength: 90}],
+                    color: '#8b5cf6'
                 },
-                ethicalFramework: {
-                    keyQuestion: 'What principle should guide this action?',
-                    focus: 'Universal moral principles and human dignity',
-                    strengths: ['Provides clear, universal guidance', 'Respects human autonomy and dignity', 'Not dependent on consequences or culture', 'Explains strong moral intuitions about rights'],
-                    limitations: ['May produce counterintuitive results in edge cases', 'Struggles with conflicting duties', 'Abstract and difficult to apply', 'Assumes cross-cultural rational agreement possible']
-                },
-                modernRelevance: ['Human rights frameworks and international law', 'Medical ethics (informed consent, autonomy)', 'Business ethics (stakeholder theory)', 'AI ethics (dignity, autonomy, universal principles)']
-            },
-            {
-                id: 'mill',
-                name: 'John Stuart Mill',
-                dates: '1806-1873',
-                tradition: 'Consequentialism',
-                image: '📊',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Pleasure and pain are objective measures', strength: 85 },
-                        { text: 'Higher pleasures exist (intellectual, moral)', strength: 90 },
-                        { text: 'Equal consideration of all interests', strength: 95 },
-                        { text: 'Social reform through evidence and reason', strength: 90 }
-                    ],
-                    rules: ['Calculate expected outcomes for all affected', 'Maximize overall happiness (utility)', 'Consider quality as well as quantity of pleasure', 'Weight long-term over short-term consequences'],
-                    ontology: 'Naturalistic worldview. No supernatural entities needed for ethics. Empiricist epistemology - knowledge from experience.',
-                    authenticity: 'Moral progress through evidence-based reform. Authentic moral agency means using reason to reduce suffering and increase happiness.'
-                },
-                ethicalFramework: {
-                    keyQuestion: 'What outcome will maximize well-being?',
-                    focus: 'Consequences and overall welfare',
-                    strengths: ['Clear decision procedure for moral choices', 'Impartial consideration of all affected', 'Adapts to new information and contexts', 'Practical and action-guiding'],
-                    limitations: ['Difficult to predict all consequences', 'May justify intuitively wrong actions', 'Measurement challenges for happiness', 'Can neglect individual rights and justice']
-                },
-                modernRelevance: ['Cost-benefit analysis in policy', 'Effective Altruism and global poverty reduction', 'Environmental ethics (sentience-based)', 'Public health ethics (population-level outcomes)']
-            },
-            {
-                id: 'gilligan',
-                name: 'Carol Gilligan',
-                dates: '1936-present',
-                tradition: 'Care Ethics',
-                image: '🤝',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Relationships constitute personhood', strength: 95 },
-                        { text: 'Care is moral foundation, not derived principle', strength: 90 },
-                        { text: 'Context matters for ethical judgment', strength: 95 },
-                        { text: 'Different moral voices are equally valid', strength: 90 }
-                    ],
-                    rules: ['Attend to contextual details and relationships', 'Maintain caring connections', 'Listen to different moral voices', 'Recognize interdependence as primary'],
-                    ontology: 'Relational ontology. Persons are fundamentally connected, not atomistic individuals. Identity formed through relationships.',
-                    authenticity: 'Feminist consciousness integrating theory with lived experience. Authentic ethics emerges from voices previously silenced.'
-                },
-                ethicalFramework: {
-                    keyQuestion: 'How do I maintain caring relationships?',
-                    focus: 'Relationships, context, and responsibility',
-                    strengths: ['Recognizes moral dimensions invisible to abstract principle', 'Values emotional and contextual factors', 'Challenges masculine bias in traditional ethics', 'Emphasizes concrete human needs'],
-                    limitations: ['May struggle to scale beyond personal relationships', 'Risk of parochialism (favoring "our" people)', 'Lacks clear decision procedures', 'Could reinforce gender stereotypes if misapplied']
-                },
-                modernRelevance: ['Healthcare ethics (patient-centered care)', 'Education (relational pedagogy)', 'Environmental ethics (land as relationship)', 'Conflict resolution (restorative justice)']
-            },
-            {
-                id: 'singer',
-                name: 'Peter Singer',
-                dates: '1946-present',
-                tradition: 'Consequentialism',
-                image: '🌍',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Suffering is objectively bad regardless of species', strength: 95 },
-                        { text: 'Equal consideration of equal interests', strength: 100 },
-                        { text: 'We can calculate and compare welfare', strength: 85 },
-                        { text: 'Affluent people have strong obligations to help', strength: 90 }
-                    ],
-                    rules: ['Give equal weight to equal interests', 'Prevent suffering when possible at reasonable cost', 'Consider all sentient beings in moral calculations', 'Prioritize effective interventions'],
-                    ontology: 'Naturalistic worldview. Sentience (capacity for suffering/wellbeing) is basis for moral consideration. No morally relevant human essence beyond sentience.',
-                    authenticity: 'Moral progress through consistent application of impartial reason. Authentic ethics means following evidence about suffering wherever it leads.'
-                },
-                ethicalFramework: {
-                    keyQuestion: 'How can I most effectively reduce suffering?',
-                    focus: 'Impartial welfare maximization and effective altruism',
-                    strengths: ['Clear guidance for global poverty and animal welfare', 'Consistent application across species boundaries', 'Evidence-based and empirically tractable', 'Motivates significant real-world impact'],
-                    limitations: ['Potentially counterintuitive implications', 'May ignore special obligations (family, community)', 'Demanding moral requirements', 'Controversial views on disability and euthanasia']
-                },
-                modernRelevance: ['Effective Altruism and charity evaluation', 'Animal welfare and factory farming reform', 'Global health interventions', 'Existential risk prioritization']
-            }
-        ];
+                {
+                    name: 'Religious Leaders',
+                    framework: 'Virtue Ethics',
+                    initialATCF: 0.80,
+                    motivation: 'Stewardship duty',
+                    reasoning: 'God entrusted creation to our care; we must be good stewards',
+                    decisionStyle: 'Character-based, traditional wisdom',
+                    capabilities: [{name: 'Community influence', level: 0.85}, {name: 'Moral guidance', level: 0.8}],
+                    beliefs: [{text: 'Fulfill stewardship role', strength: 85}],
+                    color: '#f59e0b'
+                }
+            ],
+            pedagogicalNotes: [
+                'Notice: Each group has DIFFERENT framework, motivation, and reasoning style',
+                'The protocol is minimal (I=0.01): "Plant indigenous trees"',
+                'High tolerance (ε=0.40) allows each group to maintain authentic identity',
+                'Success comes from FUNCTIONAL EQUIVALENCE not belief agreement',
+                'Compare this to scenarios where everyone shares the same framework'
+            ]
+        };
 
-        // ========== SIMULATION FUNCTIONS ==========
-        function calculateSuccessProbability(agents, I, epsilon) {
-            let prob = 0.5 - (I * 0.15) + (epsilon * 0.3);
-            const avgCap = agents.reduce((sum, a) => sum + (a.capabilities[0]?.level || 0.5), 0) / agents.length;
-            prob += (avgCap - 0.5) * 0.2;
-            const diversity = agents.length > 1 ? 0.3 : 0;
-            prob -= diversity * (1 - epsilon) * 0.15;
-            return Math.max(0.05, Math.min(0.95, prob));
+        // ========== AI TUTOR COMPONENT ==========
+        function AITutor({ currentPage, scenario }) {
+            const [isOpen, setIsOpen] = useState(false);
+            const [messages, setMessages] = useState([
+                {
+                    role: 'tutor',
+                    content: 'Hi! I\'m your Ethics Lab tutor. Ask me anything about the scenarios, frameworks, or concepts. I have access to all course content!'
+                }
+            ]);
+            const [input, setInput] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            const handleSend = async () => {
+                if (!input.trim() || isLoading) return;
+
+                const userMessage = input.trim();
+                setInput('');
+                setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+                setIsLoading(true);
+
+                try {
+                    // Build context for the AI
+                    let context = `You are an expert tutor for the Ethics Assembly History Lab course. 
+                    
+Current page: ${currentPage}
+${scenario ? `Current scenario: ${scenario.title} - ${scenario.description}` : ''}
+
+Course concepts you can explain:
+- Protocol Complexity (I): ${glossary.I.definition}
+- Tolerance (ε): ${glossary.epsilon.definition}
+- ATCF: ${glossary.ATCF.definition}
+- PRF: ${glossary.PRF.definition}
+- Functional Equivalence: ${glossary['functional equivalence'].definition}
+
+The course teaches that traditional ethics assumes we must AGREE on values to coordinate. Complexity ethics shows we can coordinate through FUNCTIONAL EQUIVALENCE - achieving compatible outcomes despite different motivations.
+
+Student question: ${userMessage}
+
+Provide a clear, helpful response in 2-3 paragraphs. Use examples from the scenarios when relevant. Be encouraging and pedagogical.`;
+
+                    const response = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            model: "claude-sonnet-4-20250514",
+                            max_tokens: 500,
+                            messages: [
+                                { role: "user", content: context }
+                            ]
+                        })
+                    });
+
+                    const data = await response.json();
+                    const tutorResponse = data.content[0].text;
+
+                    setMessages(prev => [...prev, { role: 'tutor', content: tutorResponse }]);
+                } catch (error) {
+                    console.error('Tutor error:', error);
+                    setMessages(prev => [...prev, { 
+                        role: 'tutor', 
+                        content: 'Sorry, I encountered an error. Please try again or ask a different question!' 
+                    }]);
+                }
+
+                setIsLoading(false);
+            };
+
+            return (
+                <>
+                    <button 
+                        className="tutor-button"
+                        onClick={() => setIsOpen(!isOpen)}
+                        title="Ask the AI Tutor">
+                        🤖
+                    </button>
+
+                    {isOpen && (
+                        <div className="tutor-panel">
+                            <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-t-xl">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="font-bold text-lg">AI Ethics Tutor</h3>
+                                    <button onClick={() => setIsOpen(false)} className="text-white text-xl">×</button>
+                                </div>
+                                <p className="text-xs mt-1 text-purple-100">Ask about scenarios, concepts, or frameworks</p>
+                            </div>
+
+                            <div className="tutor-messages">
+                                {messages.map((msg, idx) => (
+                                    <div key={idx} className={`message ${msg.role === 'user' ? 'message-user' : 'message-tutor'}`}>
+                                        <div className="text-xs font-semibold mb-1 opacity-70">
+                                            {msg.role === 'user' ? 'You' : '🤖 Tutor'}
+                                        </div>
+                                        <div className="text-sm">{msg.content}</div>
+                                    </div>
+                                ))}
+                                {isLoading && (
+                                    <div className="message message-tutor">
+                                        <div className="text-sm">Thinking...</div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+
+                            <div className="p-3 border-t">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={input}
+                                        onChange={(e) => setInput(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                        placeholder="Ask a question..."
+                                        className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        onClick={handleSend}
+                                        disabled={isLoading || !input.trim()}
+                                        className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                        Send
+                                    </button>
+                                </div>
+                                <div className="mt-2 text-xs text-gray-500">
+                                    Try: "Explain functional equivalence" or "Why does high I create friction?"
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
+            );
         }
 
-        function calculateATCF(agent, I, epsilon, timeStep) {
-            let atcf = agent.initialATCF || 0.8;
-            atcf -= I * 0.1;
-            atcf += epsilon * 0.15;
-            atcf -= timeStep * 0.02;
-            const resilience = agent.beliefs?.[0]?.strength || 70;
-            atcf += (resilience - 70) / 1000;
-            return Math.max(0.1, Math.min(1.0, atcf));
+        // ========== GLOSSARY TOOLTIP COMPONENT ==========
+        function GlossaryTerm({ term, children }) {
+            const [showTooltip, setShowTooltip] = useState(false);
+            const entry = glossary[term];
+
+            if (!entry) return <span>{children}</span>;
+
+            return (
+                <span 
+                    className="glossary-term inline-block relative"
+                    onMouseEnter={() => setShowTooltip(true)}
+                    onMouseLeave={() => setShowTooltip(false)}>
+                    {children}
+                    {showTooltip && (
+                        <div className="absolute z-50 w-80 p-4 bg-white border-2 border-blue-500 rounded-lg shadow-xl bottom-full left-0 mb-2">
+                            <h4 className="font-bold text-blue-600 mb-2">{entry.term}</h4>
+                            <p className="text-sm text-gray-700 mb-2">{entry.definition}</p>
+                            <p className="text-xs text-gray-600 italic"><strong>Example:</strong> {entry.example}</p>
+                        </div>
+                    )}
+                </span>
+            );
         }
 
-        function runEnsemble(scenario, numRuns = 20, numSteps = 10) {
+        // ========== ENHANCED SIMULATION (Framework-Aware) ==========
+        function runEnhancedSimulation(scenario, I, epsilon, numRuns = 20, numSteps = 10) {
             const results = {
                 runs: [],
                 summary: { avgSuccessRate: 0, avgFinalATCF: 0, robustness: 0 },
                 timeSeriesData: Array.from({length: numSteps}, (_, i) => ({ 
-                    time: i + 1, avgSuccess: 0, avgATCF: 0, runs: [] 
+                    time: i + 1, avgSuccess: 0, avgATCF: 0, runs: [], agentData: {}
+                })),
+                agentTimeSeries: scenario.agents.map(agent => ({
+                    name: agent.name,
+                    framework: agent.framework,
+                    color: agent.color || '#3b82f6',
+                    atcfOverTime: []
                 }))
             };
 
@@ -315,14 +388,60 @@
                 const runData = { runNumber: run + 1, steps: [] };
                 
                 for (let step = 0; step < numSteps; step++) {
-                    const successProb = calculateSuccessProbability(scenario.agents, scenario.defaultI, scenario.defaultEpsilon);
-                    const success = Math.random() < successProb;
-                    const avgATCF = scenario.agents.reduce((sum, a) => 
-                        sum + calculateATCF(a, scenario.defaultI, scenario.defaultEpsilon, step), 0
-                    ) / scenario.agents.length;
+                    // Calculate framework compatibility
+                    const frameworkDiversity = new Set(scenario.agents.map(a => a.framework)).size;
+                    const diversityFactor = frameworkDiversity / scenario.agents.length;
 
-                    runData.steps.push({ step: step + 1, success, avgATCF });
+                    // Base success probability
+                    let successProb = 0.5 - (I * 0.15) + (epsilon * 0.3);
+                    
+                    // High diversity requires high epsilon
+                    if (diversityFactor > 0.5 && epsilon < 0.3) {
+                        successProb -= 0.2; // Penalty for diverse group with low tolerance
+                    }
+                    
+                    // Functional equivalence bonus (low I + high epsilon with diversity)
+                    if (I < 0.1 && epsilon > 0.35 && diversityFactor > 0.5) {
+                        successProb += 0.15; // Complexity ethics working!
+                    }
+
+                    const success = Math.random() < Math.max(0.05, Math.min(0.95, successProb));
+
+                    // Calculate ATCF per agent (framework-specific)
+                    const agentATCFs = scenario.agents.map(agent => {
+                        let atcf = agent.initialATCF || 0.8;
+                        
+                        // Framework-specific ATCF calculation
+                        if (agent.framework === 'Care Ethics' && I > 0.3) {
+                            atcf -= 0.15; // Care ethics suffers under rigid protocols
+                        }
+                        if (agent.framework === 'Deontology' && I < 0.15) {
+                            atcf -= 0.1; // Deontology wants some structure
+                        }
+                        if (agent.framework === 'Consequentialism' && !success) {
+                            atcf -= 0.05; // Consequentialists care about outcomes
+                        }
+                        
+                        // Universal factors
+                        atcf -= I * 0.1;
+                        atcf += epsilon * 0.15;
+                        atcf -= step * 0.015;
+                        
+                        return Math.max(0.1, Math.min(1.0, atcf));
+                    });
+
+                    const avgATCF = agentATCFs.reduce((sum, a) => sum + a, 0) / agentATCFs.length;
+
+                    runData.steps.push({ step: step + 1, success, avgATCF, agentATCFs });
                     results.timeSeriesData[step].runs.push({ success: success ? 1 : 0, atcf: avgATCF });
+                    
+                    // Store per-agent ATCF
+                    agentATCFs.forEach((atcf, idx) => {
+                        if (!results.timeSeriesData[step].agentData[scenario.agents[idx].name]) {
+                            results.timeSeriesData[step].agentData[scenario.agents[idx].name] = [];
+                        }
+                        results.timeSeriesData[step].agentData[scenario.agents[idx].name].push(atcf);
+                    });
                 }
 
                 const finalStep = runData.steps[numSteps - 1];
@@ -331,9 +450,24 @@
                 results.runs.push(runData);
             }
 
+            // Calculate averages
             results.timeSeriesData.forEach(tp => {
                 tp.avgSuccess = tp.runs.reduce((s, r) => s + r.success, 0) / tp.runs.length * 100;
-                tp.avgATCF = tp.runs.reduce((s, r) => s + r.atcf, 0) / tp.runs.length;
+                tp.avgATCF = tp.runs.reduce((s, r) => s + r.atcf, 0) / tp.runs.length * 100;
+                
+                // Average ATCF per agent
+                Object.keys(tp.agentData).forEach(agentName => {
+                    const values = tp.agentData[agentName];
+                    tp.agentData[agentName] = values.reduce((s, v) => s + v, 0) / values.length * 100;
+                });
+            });
+
+            // Build agent time series
+            results.agentTimeSeries.forEach((agentSeries, idx) => {
+                agentSeries.atcfOverTime = results.timeSeriesData.map(tp => ({
+                    time: tp.time,
+                    atcf: tp.agentData[scenario.agents[idx].name] || 0
+                }));
             });
 
             results.summary.avgSuccessRate = (totalSuccesses / numRuns) * 100;
@@ -348,63 +482,91 @@
             return results;
         }
 
-        // ========== SIMPLE CHART COMPONENT ==========
-        function SimpleChart({ data, title }) {
-            const maxValue = Math.max(...data.map(d => Math.max(d.avgSuccess, d.avgATCF)));
+        // ========== ENHANCED CHART WITH PER-AGENT ATCF ==========
+        function EnhancedChart({ data, agentTimeSeries, title }) {
+            const maxValue = 100;
             
             return (
                 <div>
                     <h4 className="text-lg font-semibold text-gray-800 mb-4">{title}</h4>
-                    <div className="chart-container bg-gray-50">
+                    
+                    {/* Success Rate Chart */}
+                    <div className="chart-container bg-gray-50 mb-6">
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Success Rate Over Time</p>
                         <div className="flex justify-between h-full items-end px-2">
                             {data.map((d, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                                    <div className="flex gap-1 items-end w-full justify-center" style={{height: '90%'}}>
-                                        <div 
-                                            className="chart-bar bg-blue-500"
-                                            style={{
-                                                height: `${(d.avgSuccess / maxValue) * 100}%`,
-                                                width: '8px'
-                                            }}
-                                            title={`Success: ${d.avgSuccess.toFixed(1)}%`}
-                                        ></div>
-                                        <div 
-                                            className="chart-bar bg-green-500"
-                                            style={{
-                                                height: `${(d.avgATCF / maxValue) * 100}%`,
-                                                width: '8px'
-                                            }}
-                                            title={`ATCF: ${d.avgATCF.toFixed(1)}%`}
-                                        ></div>
+                                <div key={i} className="flex-1 flex flex-col items-center justify-end" style={{height: '90%'}}>
+                                    <div 
+                                        className="chart-bar w-full"
+                                        style={{
+                                            height: `${d.avgSuccess}%`,
+                                            background: 'linear-gradient(to top, #3b82f6, #60a5fa)',
+                                            maxWidth: '20px'
+                                        }}
+                                        title={`Success: ${d.avgSuccess.toFixed(1)}%`}>
                                     </div>
                                     <span className="text-xs text-gray-500 mt-2">{d.time}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
-                    <div className="flex justify-center gap-6 mt-4 text-sm">
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                            <span>Success Rate (%)</span>
+
+                    {/* ATCF by Agent Chart */}
+                    {agentTimeSeries && agentTimeSeries.length > 0 && (
+                        <div className="chart-container bg-gray-50">
+                            <p className="text-sm font-semibold text-gray-600 mb-2">ATCF by Stakeholder Group</p>
+                            <div className="flex justify-between h-full items-end px-2">
+                                {data.map((d, timeIdx) => (
+                                    <div key={timeIdx} className="flex-1 flex flex-col items-center justify-end" style={{height: '90%'}}>
+                                        <div className="flex gap-0.5 items-end h-full">
+                                            {agentTimeSeries.map((agent, agentIdx) => (
+                                                <div
+                                                    key={agentIdx}
+                                                    className="chart-bar"
+                                                    style={{
+                                                        height: `${agent.atcfOverTime[timeIdx].atcf}%`,
+                                                        width: `${100 / agentTimeSeries.length / data.length}px`,
+                                                        background: agent.color
+                                                    }}
+                                                    title={`${agent.name}: ${agent.atcfOverTime[timeIdx].atcf.toFixed(1)}%`}>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <span className="text-xs text-gray-500 mt-2">{d.time}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-green-500 rounded"></div>
-                            <span>Avg ATCF (%)</span>
+                    )}
+
+                    {/* Legend */}
+                    <div className="mt-6 space-y-3">
+                        <div className="flex flex-wrap gap-4 justify-center">
+                            {agentTimeSeries && agentTimeSeries.map((agent, idx) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <div className="w-4 h-4 rounded" style={{background: agent.color}}></div>
+                                    <span className="text-sm">{agent.name}</span>
+                                    <span className="text-xs text-gray-500">({agent.framework})</span>
+                                </div>
+                            ))}
                         </div>
+                        <p className="text-xs text-center text-gray-600 italic">
+                            Notice how different frameworks maintain ATCF differently based on I and ε values
+                        </p>
                     </div>
                 </div>
             );
         }
 
-        // ========== MAIN APP COMPONENT ==========
+        // ========== MINIMAL MAIN APP (showing key enhancements) ==========
         function App() {
             const [page, setPage] = useState('home');
             const [scenario, setScenario] = useState(null);
-            const [selectedWeek, setSelectedWeek] = useState('all');
             const [I, setI] = useState(0.2);
             const [epsilon, setEpsilon] = useState(0.3);
             const [results, setResults] = useState(null);
             const [isRunning, setIsRunning] = useState(false);
+            const [showGlossary, setShowGlossary] = useState(false);
 
             const handleNavigate = (newPage) => {
                 setPage(newPage);
@@ -416,6 +578,7 @@
                 setI(s.defaultI);
                 setEpsilon(s.defaultEpsilon);
                 setResults(null);
+                handleNavigate('simulator');
             };
 
             const handleRunSimulation = () => {
@@ -423,206 +586,200 @@
                 setIsRunning(true);
                 setTimeout(() => {
                     const modScenario = { ...scenario, defaultI: I, defaultEpsilon: epsilon };
-                    const ensembleResults = runEnsemble(modScenario);
+                    const ensembleResults = runEnhancedSimulation(modScenario, I, epsilon);
                     setResults(ensembleResults);
                     setIsRunning(false);
                 }, 500);
             };
 
-            const filteredScenarios = selectedWeek === 'all' 
-                ? scenarios 
-                : scenarios.filter(s => s.week === parseInt(selectedWeek));
-
             return (
                 <div className="min-h-screen bg-gray-100">
+                    {/* AI Tutor (always available) */}
+                    <AITutor currentPage={page} scenario={scenario} />
+
                     {/* Navigation */}
-                    <nav className="bg-white shadow-md sticky top-0 z-50">
+                    <nav className="bg-white shadow-md sticky top-0 z-40">
                         <div className="max-w-7xl mx-auto px-4">
                             <div className="flex justify-between items-center h-16">
                                 <button onClick={() => handleNavigate('home')} 
-                                        className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
+                                        className="text-xl font-bold text-gray-800 hover:text-blue-600">
                                     Ethics Lab
                                 </button>
-                                <div className="flex gap-1">
-                                    {[
-                                        {id: 'home', label: 'Home', icon: '🏠'},
-                                        {id: 'scenarios', label: 'Scenarios', icon: '🎭'},
-                                        {id: 'simulator', label: 'Simulator', icon: '⚙️'},
-                                        {id: 'philosophers', label: 'Philosophers', icon: '🧠'}
-                                    ].map(nav => (
-                                        <button key={nav.id} onClick={() => handleNavigate(nav.id)}
-                                                className={`px-4 py-2 rounded-lg transition-colors ${
-                                                    page === nav.id 
-                                                    ? 'bg-blue-600 text-white' 
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                                }`}>
-                                            <span className="hidden md:inline">{nav.icon} {nav.label}</span>
-                                            <span className="md:hidden">{nav.icon}</span>
-                                        </button>
-                                    ))}
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowGlossary(!showGlossary)}
+                                            className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                                        📖 Glossary
+                                    </button>
+                                    <button onClick={() => handleNavigate('enhanced-demo')}
+                                            className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700">
+                                        🆕 Enhanced Demo
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </nav>
 
+                    {/* Glossary Panel */}
+                    {showGlossary && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setShowGlossary(false)}>
+                            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-xl">
+                                    <div className="flex justify-between items-center">
+                                        <h2 className="text-2xl font-bold">📖 Ethics Lab Glossary</h2>
+                                        <button onClick={() => setShowGlossary(false)} className="text-2xl">×</button>
+                                    </div>
+                                </div>
+                                <div className="p-6 space-y-6">
+                                    {Object.entries(glossary).map(([key, entry]) => (
+                                        <div key={key} className="border-l-4 border-blue-500 pl-4">
+                                            <h3 className="text-lg font-bold text-gray-800 mb-2">{entry.term}</h3>
+                                            <p className="text-gray-700 mb-2">{entry.definition}</p>
+                                            <div className="bg-blue-50 p-3 rounded">
+                                                <p className="text-sm text-gray-700">
+                                                    <strong className="text-blue-700">Example:</strong> {entry.example}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Main Content */}
                     <main className="max-w-7xl mx-auto px-4 py-8">
-                        {/* HOME PAGE */}
+                        {/* HOME */}
                         {page === 'home' && (
                             <div className="max-w-4xl mx-auto">
                                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-8 mb-8">
-                                    <h1 className="text-4xl font-bold mb-4">Ethics Assembly History Lab</h1>
-                                    <p className="text-xl">From Ancient Wisdom to Planetary Coordination</p>
+                                    <h1 className="text-4xl font-bold mb-4">Ethics Lab - Enhanced Edition</h1>
+                                    <p className="text-xl">Now with AI Tutor, Glossary, and Framework-Aware Simulations!</p>
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-6 mb-8">
                                     <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h2 className="text-2xl font-semibold mb-3 text-gray-800">📚 Module Overview</h2>
-                                        <p className="text-gray-600 mb-4">
-                                            A 4-week interactive journey exploring how ethical frameworks emerged from specific historical contexts
-                                        </p>
-                                        <div className="space-y-2 text-sm">
-                                            <div><span className="font-semibold text-blue-600">Week 1:</span> Discovery - Why disagree?</div>
-                                            <div><span className="font-semibold text-green-600">Week 2:</span> History - When frameworks work?</div>
-                                            <div><span className="font-semibold text-purple-600">Week 3:</span> Coordination emerges</div>
-                                            <div><span className="font-semibold text-red-600">Week 4:</span> Planetary challenges</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h2 className="text-2xl font-semibold mb-3 text-gray-800">🎯 Learning Goals</h2>
+                                        <h2 className="text-2xl font-semibold mb-3 text-gray-800">🆕 New Features</h2>
                                         <ul className="space-y-2 text-sm">
                                             <li className="flex items-start">
-                                                <span className="text-green-500 mr-2">✓</span>
-                                                <span>Understand your ethical PRF</span>
+                                                <span className="text-purple-500 mr-2">🤖</span>
+                                                <span><strong>AI Tutor:</strong> Ask questions anytime (bottom right button)</span>
                                             </li>
                                             <li className="flex items-start">
-                                                <span className="text-green-500 mr-2">✓</span>
-                                                <span>Trace philosophers' assembly histories</span>
+                                                <span className="text-blue-500 mr-2">📖</span>
+                                                <span><strong>Glossary:</strong> Hover over underlined terms or click Glossary button</span>
                                             </li>
                                             <li className="flex items-start">
-                                                <span className="text-green-500 mr-2">✓</span>
-                                                <span>Master I/H/ATCF tradeoffs</span>
+                                                <span className="text-green-500 mr-2">📊</span>
+                                                <span><strong>Framework-Aware Simulations:</strong> See how different frameworks interact</span>
                                             </li>
                                             <li className="flex items-start">
-                                                <span className="text-green-500 mr-2">✓</span>
-                                                <span>Coordinate across differences</span>
+                                                <span className="text-orange-500 mr-2">👥</span>
+                                                <span><strong>Agent Differentiation:</strong> Each group maintains distinct identity</span>
                                             </li>
                                         </ul>
                                     </div>
-                                </div>
 
-                                <div className="bg-blue-50 rounded-lg p-6 mb-8">
-                                    <h2 className="text-2xl font-semibold mb-4 text-gray-800">🛠️ Interactive Tools</h2>
-                                    <div className="grid md:grid-cols-3 gap-4">
-                                        <button onClick={() => handleNavigate('scenarios')} 
-                                                className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow text-left">
-                                            <div className="text-3xl mb-2">🎭</div>
-                                            <h3 className="font-semibold text-gray-800 mb-1">Historical Scenarios</h3>
-                                            <p className="text-sm text-gray-600">6 cases from Athens to AI Safety</p>
-                                        </button>
-                                        <button onClick={() => handleNavigate('philosophers')}
-                                                className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow text-left">
-                                            <div className="text-3xl mb-2">🧠</div>
-                                            <h3 className="font-semibold text-gray-800 mb-1">Philosopher Database</h3>
-                                            <p className="text-sm text-gray-600">5 complete PRF profiles</p>
-                                        </button>
-                                        <button onClick={() => handleNavigate('simulator')}
-                                                className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow text-left">
-                                            <div className="text-3xl mb-2">⚙️</div>
-                                            <h3 className="font-semibold text-gray-800 mb-1">Coalition Simulator</h3>
-                                            <p className="text-sm text-gray-600">Run ensemble simulations</p>
-                                        </button>
+                                    <div className="bg-white rounded-lg shadow-md p-6">
+                                        <h2 className="text-2xl font-semibold mb-3 text-gray-800">💡 Key Concepts</h2>
+                                        <div className="space-y-2 text-sm">
+                                            <p>
+                                                <GlossaryTerm term="I">Protocol Complexity (I)</GlossaryTerm>: Rules create friction
+                                            </p>
+                                            <p>
+                                                <GlossaryTerm term="epsilon">Tolerance (ε)</GlossaryTerm>: Welcoming difference
+                                            </p>
+                                            <p>
+                                                <GlossaryTerm term="ATCF">ATCF</GlossaryTerm>: Maintaining authentic identity
+                                            </p>
+                                            <p>
+                                                <GlossaryTerm term="functional equivalence">Functional Equivalence</GlossaryTerm>: The key insight
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg p-6">
-                                    <h2 className="text-2xl font-semibold mb-3 text-gray-800">🌟 The Big Insight</h2>
-                                    <p className="text-gray-700 mb-3">
-                                        Traditional ethics asks: <em>"Which framework is right?"</em>
+                                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
+                                    <h2 className="text-2xl font-semibold mb-3 text-gray-800">🎯 Try the Enhanced Demo</h2>
+                                    <p className="text-gray-700 mb-4">
+                                        See the Green Belt Movement with REAL differentiated agents - each with different frameworks, 
+                                        motivations, and reasoning styles. Watch how they maintain authentic identities while coordinating!
                                     </p>
-                                    <p className="text-gray-700 font-semibold">
-                                        Complexity ethics asks: <em>"How do we coordinate across frameworks?"</em>
-                                    </p>
+                                    <button onClick={() => handleSelectScenario(enhancedGreenBeltScenario)}
+                                            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 font-semibold">
+                                        Run Enhanced Scenario
+                                    </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* SCENARIOS PAGE */}
-                        {page === 'scenarios' && (
+                        {/* ENHANCED DEMO PAGE */}
+                        {page === 'enhanced-demo' && (
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Historical Scenarios Library</h1>
-                                <p className="text-gray-600 mb-6">Explore 6 historical cases showing when ethical frameworks work and fail</p>
-                                
-                                {/* Week Filter */}
-                                <div className="mb-6 flex gap-2 flex-wrap">
-                                    <button
-                                        onClick={() => setSelectedWeek('all')}
-                                        className={`px-4 py-2 rounded-lg transition-colors ${
-                                            selectedWeek === 'all' 
-                                            ? 'bg-gray-800 text-white' 
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                        }`}>
-                                        All Scenarios
-                                    </button>
-                                    {[1, 2, 3, 4].map(week => (
-                                        <button
-                                            key={week}
-                                            onClick={() => setSelectedWeek(week.toString())}
-                                            className={`px-4 py-2 rounded-lg transition-colors ${
-                                                selectedWeek === week.toString()
-                                                ? 'bg-gray-800 text-white'
-                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}>
-                                            Week {week}
-                                        </button>
-                                    ))}
+                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Enhanced Green Belt Movement</h1>
+                                <p className="text-gray-600 mb-6">See how DIFFERENT frameworks coordinate through functional equivalence</p>
+
+                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                                    <h3 className="font-semibold text-yellow-800 mb-2">📚 Pedagogical Notes:</h3>
+                                    <ul className="text-sm text-yellow-700 space-y-1">
+                                        {enhancedGreenBeltScenario.pedagogicalNotes.map((note, idx) => (
+                                            <li key={idx}>• {note}</li>
+                                        ))}
+                                    </ul>
                                 </div>
 
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    {filteredScenarios.map(s => (
-                                        <div key={s.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                                            <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h2 className="text-xl font-bold">{s.title}</h2>
-                                                    <span className="px-2 py-1 bg-blue-200 text-blue-900 text-xs font-semibold rounded">
-                                                        Week {s.week}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-300">{s.period}</p>
-                                            </div>
-                                            <div className="p-4">
-                                                <p className="text-gray-700 mb-4 text-sm">{s.description}</p>
-                                                <div className="mb-3">
-                                                    <span className="text-sm font-semibold text-gray-600">Framework:</span>
-                                                    <span className="ml-2 text-sm text-gray-800">{s.framework}</span>
-                                                </div>
-                                                <div className="bg-blue-50 rounded p-3 mb-4">
-                                                    <p className="text-sm font-semibold text-blue-800 mb-1">🎯 Learning Goal:</p>
-                                                    <p className="text-sm text-gray-700">{s.learningGoal}</p>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                                                    <div className="bg-gray-100 rounded p-2">
-                                                        <p className="text-xs text-gray-600">Protocol (I)</p>
-                                                        <p className="text-lg font-bold text-gray-800">{s.defaultI}</p>
-                                                    </div>
-                                                    <div className="bg-gray-100 rounded p-2">
-                                                        <p className="text-xs text-gray-600">Tolerance (ε)</p>
-                                                        <p className="text-lg font-bold text-gray-800">{s.defaultEpsilon}</p>
-                                                    </div>
-                                                    <div className="bg-gray-100 rounded p-2">
-                                                        <p className="text-xs text-gray-600">Agents</p>
-                                                        <p className="text-lg font-bold text-gray-800">{s.agents.length}</p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => { handleSelectScenario(s); handleNavigate('simulator'); }}
-                                                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                                                    Run This Scenario
-                                                </button>
+                                <div className="grid md:grid-cols-4 gap-4 mb-6">
+                                    {enhancedGreenBeltScenario.agents.map((agent, idx) => (
+                                        <div key={idx} className="bg-white rounded-lg shadow-md p-4 border-l-4" style={{borderColor: agent.color}}>
+                                            <h3 className="font-bold text-gray-800 mb-2">{agent.name}</h3>
+                                            <div className="space-y-2 text-sm">
+                                                <p>
+                                                    <span className="font-semibold text-gray-700">Framework:</span>
+                                                    <br/><span className="text-gray-600">{agent.framework}</span>
+                                                </p>
+                                                <p>
+                                                    <span className="font-semibold text-gray-700">Motivation:</span>
+                                                    <br/><span className="text-gray-600">{agent.motivation}</span>
+                                                </p>
+                                                <p>
+                                                    <span className="font-semibold text-gray-700">Reasoning:</span>
+                                                    <br/><span className="text-gray-600 italic text-xs">{agent.reasoning}</span>
+                                                </p>
+                                                <p>
+                                                    <span className="font-semibold text-gray-700">Decision Style:</span>
+                                                    <br/><span className="text-gray-600 text-xs">{agent.decisionStyle}</span>
+                                                </p>
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+
+                                <button onClick={() => handleSelectScenario(enhancedGreenBeltScenario)}
+                                        className="w-full bg-purple-600 text-white py-4 rounded-lg hover:bg-purple-700 font-bold text-lg mb-6">
+                                    Run Enhanced Simulation →
+                                </button>
+
+                                <div className="bg-blue-50 rounded-lg p-6">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-3">🔍 What to Watch For:</h3>
+                                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <p className="font-semibold text-blue-800 mb-2">Try LOW I (0.01) + HIGH ε (0.40):</p>
+                                            <ul className="text-gray-700 space-y-1">
+                                                <li>• All groups maintain high ATCF</li>
+                                                <li>• Success rate is high</li>
+                                                <li>• Different colors stay strong</li>
+                                                <li>• This is functional equivalence!</li>
+                                            </ul>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-red-800 mb-2">Try HIGH I (0.4) + LOW ε (0.15):</p>
+                                            <ul className="text-gray-700 space-y-1">
+                                                <li>• ATCF drops (especially Care Ethics)</li>
+                                                <li>• Success rate declines</li>
+                                                <li>• Groups feel compromised</li>
+                                                <li>• Diversity becomes friction</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -634,77 +791,61 @@
                                     <div className="max-w-4xl mx-auto text-center py-12">
                                         <div className="text-6xl mb-4">🎭</div>
                                         <h2 className="text-2xl font-bold text-gray-800 mb-4">No Scenario Selected</h2>
-                                        <p className="text-gray-600 mb-6">Select a scenario from the library to begin simulation</p>
-                                        <button onClick={() => handleNavigate('scenarios')} 
-                                                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                                            Browse Scenarios
+                                        <button onClick={() => handleNavigate('enhanced-demo')} 
+                                                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700">
+                                            Try Enhanced Scenario
                                         </button>
                                     </div>
                                 ) : (
                                     <div>
-                                        <button onClick={() => handleNavigate('scenarios')} 
-                                                className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
-                                            ← Back to Scenarios
+                                        <button onClick={() => handleNavigate('enhanced-demo')} 
+                                                className="text-blue-600 hover:text-blue-800 mb-4">
+                                            ← Back
                                         </button>
                                         <h1 className="text-3xl font-bold text-gray-800 mb-2">{scenario.title}</h1>
                                         <p className="text-gray-600 mb-6">{scenario.period}</p>
                                         
                                         <div className="grid lg:grid-cols-3 gap-6">
-                                            {/* Controls */}
-                                            <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-20 h-fit">
-                                                <h2 className="text-xl font-semibold text-gray-800 mb-4">Simulation Controls</h2>
-                                                <div className="mb-6 p-3 bg-blue-50 rounded">
-                                                    <p className="text-sm font-semibold text-blue-800 mb-1">Coalition Task:</p>
+                                            <div className="bg-white rounded-lg shadow-md p-6">
+                                                <h2 className="text-xl font-semibold text-gray-800 mb-4">Controls</h2>
+                                                <div className="mb-4 p-3 bg-blue-50 rounded">
+                                                    <p className="text-sm font-semibold text-blue-800 mb-1">Task:</p>
                                                     <p className="text-sm text-gray-700">{scenario.task.description}</p>
                                                 </div>
                                                 <div className="space-y-6">
                                                     <div>
                                                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                            Protocol Complexity (I): {I.toFixed(2)}
+                                                            <GlossaryTerm term="I">Protocol Complexity (I)</GlossaryTerm>: {I.toFixed(2)}
                                                         </label>
                                                         <input type="range" min="0" max="1" step="0.05" value={I}
                                                                onChange={(e) => setI(parseFloat(e.target.value))}
                                                                className="w-full" />
-                                                        <p className="text-xs text-gray-500 mt-1">Higher I = more rules, more friction</p>
                                                     </div>
                                                     <div>
                                                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                            Tolerance for Difference (ε): {epsilon.toFixed(2)}
+                                                            <GlossaryTerm term="epsilon">Tolerance (ε)</GlossaryTerm>: {epsilon.toFixed(2)}
                                                         </label>
                                                         <input type="range" min="0" max="1" step="0.05" value={epsilon}
                                                                onChange={(e) => setEpsilon(parseFloat(e.target.value))}
                                                                className="w-full" />
-                                                        <p className="text-xs text-gray-500 mt-1">Higher ε = more tolerance for different approaches</p>
                                                     </div>
                                                     <button onClick={handleRunSimulation} disabled={isRunning}
-                                                            className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                                                            className={`w-full py-3 rounded-lg font-semibold ${
                                                                 isRunning 
-                                                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
-                                                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                                                            }`}>
-                                                        {isRunning ? 'Running Simulation...' : 'Run Simulation'}
+                                                                ? 'bg-gray-400 cursor-not-allowed' 
+                                                                : 'bg-blue-600 hover:bg-blue-700'
+                                                            } text-white`}>
+                                                        {isRunning ? 'Running...' : 'Run Simulation'}
                                                     </button>
-                                                </div>
-                                                <div className="mt-6">
-                                                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Stakeholder Groups:</h3>
-                                                    <div className="space-y-2">
-                                                        {scenario.agents.map((agent, idx) => (
-                                                            <div key={idx} className="text-sm p-2 bg-gray-50 rounded">
-                                                                <p className="font-semibold text-gray-800">{agent.name}</p>
-                                                                <p className="text-xs text-gray-600">{agent.framework}</p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Results */}
                                             <div className="lg:col-span-2">
                                                 {!results ? (
                                                     <div className="bg-white rounded-lg shadow-md p-12 text-center">
                                                         <div className="text-6xl mb-4">⚙️</div>
                                                         <h3 className="text-xl font-semibold text-gray-800 mb-2">Ready to Simulate</h3>
-                                                        <p className="text-gray-600">Adjust parameters on the left and click "Run Simulation" to see results</p>
+                                                        <p className="text-gray-600">Adjust parameters and run</p>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-6">
@@ -715,25 +856,29 @@
                                                                     <p className="text-3xl font-bold text-blue-600">
                                                                         {results.summary.avgSuccessRate.toFixed(0)}%
                                                                     </p>
-                                                                    <p className="text-sm text-gray-600 mt-1">Success Rate</p>
+                                                                    <p className="text-sm text-gray-600 mt-1">Success</p>
                                                                 </div>
                                                                 <div className="text-center p-4 bg-green-50 rounded-lg">
                                                                     <p className="text-3xl font-bold text-green-600">
                                                                         {(results.summary.avgFinalATCF * 100).toFixed(0)}%
                                                                     </p>
-                                                                    <p className="text-sm text-gray-600 mt-1">Final ATCF</p>
+                                                                    <p className="text-sm text-gray-600 mt-1">ATCF</p>
                                                                 </div>
                                                                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                                                                     <p className="text-3xl font-bold text-purple-600">
                                                                         {results.summary.robustness.toFixed(0)}%
                                                                     </p>
-                                                                    <p className="text-sm text-gray-600 mt-1">Robustness</p>
+                                                                    <p className="text-sm text-gray-600 mt-1">Robust</p>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         <div className="bg-white rounded-lg shadow-md p-6">
-                                                            <SimpleChart data={results.timeSeriesData} title="Performance Over Time" />
+                                                            <EnhancedChart 
+                                                                data={results.timeSeriesData} 
+                                                                agentTimeSeries={results.agentTimeSeries}
+                                                                title="Performance Over Time" 
+                                                            />
                                                         </div>
 
                                                         <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
@@ -748,154 +893,20 @@
                                 )}
                             </div>
                         )}
-
-                        {/* PHILOSOPHERS PAGE */}
-                        {page === 'philosophers' && (
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-800 mb-2">Philosopher Database</h1>
-                                <p className="text-gray-600 mb-6">Explore how different philosophers' assembly histories shaped their ethical frameworks</p>
-                                
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {philosophers.map(p => (
-                                        <div key={p.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                                            <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-6 text-center">
-                                                <div className="text-5xl mb-3">{p.image}</div>
-                                                <h2 className="text-xl font-bold">{p.name}</h2>
-                                                <p className="text-sm text-gray-300">{p.dates}</p>
-                                            </div>
-                                            <div className="p-4">
-                                                <div className="mb-4">
-                                                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-sm font-semibold rounded-full">
-                                                        {p.tradition}
-                                                    </span>
-                                                </div>
-                                                <div className="mb-4">
-                                                    <p className="text-sm font-semibold text-gray-700 mb-1">Key Question:</p>
-                                                    <p className="text-sm text-gray-600 italic">"{p.ethicalFramework.keyQuestion}"</p>
-                                                </div>
-                                                <div className="mb-4">
-                                                    <p className="text-sm font-semibold text-gray-700 mb-1">Focus:</p>
-                                                    <p className="text-sm text-gray-600">{p.ethicalFramework.focus}</p>
-                                                </div>
-                                                <div className="mb-4">
-                                                    <p className="text-sm font-semibold text-gray-700 mb-2">Core Beliefs:</p>
-                                                    <div className="space-y-2">
-                                                        {p.prfProfile.beliefs.slice(0, 2).map((belief, idx) => (
-                                                            <div key={idx}>
-                                                                <div className="flex items-center text-xs mb-1">
-                                                                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                                                        <div className="bg-blue-600 h-2 rounded-full" 
-                                                                             style={{width: `${belief.strength}%`}}></div>
-                                                                    </div>
-                                                                    <span className="text-gray-600">{belief.text.substring(0, 30)}...</span>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <p className="text-xs font-semibold text-green-700 mb-1">✓ Strengths</p>
-                                                        <ul className="text-xs text-gray-600 space-y-1">
-                                                            {p.ethicalFramework.strengths.slice(0, 2).map((s, i) => (
-                                                                <li key={i} className="flex items-start">
-                                                                    <span className="text-green-500 mr-1">+</span>
-                                                                    <span className="text-xs">{s.substring(0, 40)}...</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-semibold text-red-700 mb-1">⚠ Limits</p>
-                                                        <ul className="text-xs text-gray-600 space-y-1">
-                                                            {p.ethicalFramework.limitations.slice(0, 2).map((l, i) => (
-                                                                <li key={i} className="flex items-start">
-                                                                    <span className="text-red-500 mr-1">-</span>
-                                                                    <span className="text-xs">{l.substring(0, 40)}...</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-4">
-                                                    <p className="text-xs font-semibold text-gray-700 mb-1">🌍 Modern Relevance:</p>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {p.modernRelevance.slice(0, 2).map((area, i) => (
-                                                            <span key={i} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                                                {area.substring(0, 25)}{area.length > 25 ? '...' : ''}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-                                    <h3 className="text-xl font-semibold text-gray-800 mb-3">🔗 Coordination Insight</h3>
-                                    <p className="text-gray-700 mb-3">
-                                        These philosophers developed fundamentally different frameworks from their distinct assembly histories and cultural contexts.
-                                    </p>
-                                    <p className="text-gray-700 mb-3">
-                                        <strong>Traditional ethics asks:</strong> Which framework is correct?
-                                    </p>
-                                    <p className="text-gray-700 font-semibold">
-                                        <strong>Complexity ethics enables:</strong> Coordination through functional equivalence - 
-                                        they can work toward shared outcomes while maintaining their authentic frameworks.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
                     </main>
 
-                    {/* Footer */}
                     <footer className="bg-gray-800 text-white mt-16 py-8">
-                        <div className="max-w-7xl mx-auto px-4">
-                            <div className="grid md:grid-cols-3 gap-8 mb-8">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">Ethics Assembly History Lab</h3>
-                                    <p className="text-gray-400 text-sm">
-                                        An interactive module exploring how ethical frameworks emerged from specific historical contexts and how we coordinate across them today.
-                                    </p>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">Quick Links</h3>
-                                    <div className="space-y-2">
-                                        <button onClick={() => handleNavigate('scenarios')} 
-                                                className="block text-gray-400 hover:text-white text-sm transition-colors">
-                                            Historical Scenarios
-                                        </button>
-                                        <button onClick={() => handleNavigate('philosophers')} 
-                                                className="block text-gray-400 hover:text-white text-sm transition-colors">
-                                            Philosopher Database
-                                        </button>
-                                        <button onClick={() => handleNavigate('simulator')} 
-                                                className="block text-gray-400 hover:text-white text-sm transition-colors">
-                                            Coalition Simulator
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">About</h3>
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Part of the Capability-Based Coordination framework
-                                    </p>
-                                    <p className="text-gray-400 text-sm">
-                                        Based on FAIM-QIRF theoretical foundations
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="pt-8 border-t border-gray-700 text-center">
-                                <p className="text-gray-400 text-sm">© 2025 Ethics Lab. Built for educational purposes.</p>
-                            </div>
+                        <div className="max-w-7xl mx-auto px-4 text-center">
+                            <p className="text-gray-400 text-sm">
+                                © 2025 Ethics Lab Enhanced Edition - Now with AI Tutor! 
+                                <br/>Click the 🤖 button to ask questions anytime.
+                            </p>
                         </div>
                     </footer>
                 </div>
             );
         }
 
-        // ========== RENDER ==========
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
