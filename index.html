@@ -95,8 +95,95 @@
         }
         .glossary-term:hover {
             color: #3b82f6;
-        }
-    </style>
+        }  /* ========== NEW FEATURES CSS - Add before </style> tag ========== */
+
+/* AI Tutor Button */
+.tutor-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: transform 0.3s;
+}
+.tutor-button:hover {
+    transform: scale(1.1);
+}
+
+/* AI Tutor Panel */
+.tutor-panel {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 400px;
+    max-height: 600px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.tutor-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    max-height: 450px;
+}
+
+.message {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    max-width: 85%;
+}
+.message-user {
+    background: #667eea;
+    color: white;
+    margin-left: auto;
+}
+.message-tutor {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+/* Video Container */
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    max-width: 100%;
+    background: #000;
+    border-radius: 8px;
+}
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Glossary Term */
+.glossary-term {
+    cursor: help;
+    border-bottom: 2px dotted #3b82f6;
+    position: relative;
+}
+.glossary-term:hover {
+    color: #3b82f6;
+}
+</style>
 </head>
 <body>
     <div id="root"></div>
