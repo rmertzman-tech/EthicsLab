@@ -5,659 +5,438 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ethics Assembly History Lab</title>
     
-    <!-- CDN Dependencies -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        .loading { text-align: center; padding: 50px; font-size: 20px; color: #666; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f3f4f6;
+        }
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading-screen h1 { 
+            color: #2563eb; 
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #dc2626;
+            background: #fee2e2;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-width: 600px;
+        }
+        #status { color: #6b7280; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div id="root">
-        <div class="loading">Loading Ethics Lab...</div>
+        <div class="loading-screen">
+            <h1>Ethics Assembly History Lab</h1>
+            <div class="spinner"></div>
+            <div id="status">Loading libraries...</div>
+        </div>
     </div>
 
+    <!-- Load dependencies in correct order -->
+    <script>
+        let loadStatus = document.getElementById('status');
+        let loadedLibs = {
+            react: false,
+            reactDom: false,
+            babel: false,
+            tailwind: false,
+            recharts: false
+        };
+
+        function updateStatus(msg) {
+            console.log(msg);
+            if (loadStatus) loadStatus.textContent = msg;
+        }
+
+        function checkAllLoaded() {
+            if (Object.values(loadedLibs).every(v => v)) {
+                updateStatus('All libraries loaded! Starting app...');
+                setTimeout(initApp, 100);
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('root').innerHTML = `
+                <div class="loading-screen">
+                    <h1>⚠️ Loading Error</h1>
+                    <div class="error-message">
+                        <strong>Error:</strong> ${msg}
+                        <br><br>
+                        <strong>Solutions:</strong>
+                        <ul style="text-align: left; margin-top: 10px;">
+                            <li>Check your internet connection</li>
+                            <li>Try refreshing the page (Ctrl+R or Cmd+R)</li>
+                            <li>Check browser console (F12) for details</li>
+                            <li>Try a different browser</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Set timeout for loading
+        setTimeout(() => {
+            if (!Object.values(loadedLibs).every(v => v)) {
+                showError('Libraries failed to load after 30 seconds. Check console for details.');
+            }
+        }, 30000);
+    </script>
+
+    <!-- React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" 
+            onload="loadedLibs.react=true; updateStatus('React loaded...'); checkAllLoaded();"
+            onerror="showError('Failed to load React from CDN')"></script>
+    
+    <!-- React DOM -->
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+            onload="loadedLibs.reactDom=true; updateStatus('React DOM loaded...'); checkAllLoaded();"
+            onerror="showError('Failed to load React DOM from CDN')"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"
+            onload="loadedLibs.babel=true; updateStatus('Babel loaded...'); checkAllLoaded();"
+            onerror="showError('Failed to load Babel from CDN')"></script>
+    
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"
+            onload="loadedLibs.tailwind=true; updateStatus('Tailwind loaded...'); checkAllLoaded();"
+            onerror="showError('Failed to load Tailwind from CDN')"></script>
+    
+    <!-- Recharts -->
+    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"
+            onload="loadedLibs.recharts=true; updateStatus('Recharts loaded...'); checkAllLoaded();"
+            onerror="showError('Failed to load Recharts from CDN')"></script>
+
     <script type="text/babel">
-        const { useState } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
-
-        // ========== DATA ==========
-        const historicalScenarios = [
-            {
-                id: 'ancient-athens',
-                title: 'Ancient Athens',
-                period: '430 BCE',
-                week: 1,
-                framework: 'Virtue Ethics',
-                description: 'Athenian democracy during Peloponnesian War. Can virtue ethics coordinate diverse stakeholders when cultural consensus exists?',
-                learningGoal: 'Understand when virtue ethics works - requires shared cultural framework and stable social roles',
-                task: { description: 'Coordinate Athenian citizens to prevent execution of Socrates', successCriteria: 'Achieve consensus without compromising virtue' },
-                defaultI: 0.12,
-                defaultEpsilon: 0.15,
-                agents: [
-                    { name: 'Philosophers', framework: 'Virtue Ethics', initialATCF: 0.85, beliefs: [{text: 'Wisdom highest virtue', strength: 90}], capabilities: [{name: 'Reasoning', level: 0.9}] },
-                    { name: 'Military Leaders', framework: 'Virtue Ethics', initialATCF: 0.80, beliefs: [{text: 'Courage highest virtue', strength: 85}], capabilities: [{name: 'Leadership', level: 0.85}] },
-                    { name: 'Democratic Assembly', framework: 'Virtue Ethics', initialATCF: 0.75, beliefs: [{text: 'Justice through participation', strength: 80}], capabilities: [{name: 'Governance', level: 0.75}] }
-                ]
-            },
-            {
-                id: 'enlightenment',
-                title: 'Enlightenment Europe',
-                period: '1795',
-                week: 2,
-                framework: 'Deontology',
-                description: 'Post-religious wars Europe. Can universal principles enable coordination across religious differences?',
-                learningGoal: 'Discover how deontology enables cross-cultural coordination through universal rational principles',
-                task: { description: 'Design peace treaty after religious wars', successCriteria: 'Lasting peace respecting different religions' },
-                defaultI: 0.25,
-                defaultEpsilon: 0.30,
-                agents: [
-                    { name: 'Catholic States', framework: 'Deontology', initialATCF: 0.80, beliefs: [{text: 'Divine law', strength: 85}], capabilities: [{name: 'Diplomacy', level: 0.8}] },
-                    { name: 'Protestant States', framework: 'Deontology', initialATCF: 0.80, beliefs: [{text: 'Scripture authority', strength: 85}], capabilities: [{name: 'Diplomacy', level: 0.8}] },
-                    { name: 'Enlightenment Thinkers', framework: 'Deontology', initialATCF: 0.85, beliefs: [{text: 'Rational moral law', strength: 90}], capabilities: [{name: 'Reasoning', level: 0.9}] }
-                ]
-            }
-        ];
-
-        const philosophersDB = [
-            {
-                id: 'aristotle',
-                name: 'Aristotle',
-                dates: '384-322 BCE',
-                tradition: 'Virtue Ethics',
-                image: '🏛️',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Human nature has inherent purpose (telos)', strength: 95 },
-                        { text: 'Excellence achieved through habituation', strength: 90 },
-                        { text: 'Practical wisdom guides ethical action', strength: 95 }
-                    ],
-                    rules: ['Observe excellent exemplars', 'Practice virtues until habitual', 'Seek the mean between extremes'],
-                    ontology: 'Teleological worldview - everything has proper function and purpose',
-                    authenticity: 'Excellence emerges from fulfilling proper function within community'
-                },
-                ethicalFramework: {
-                    keyQuestion: 'What kind of person should I become?',
-                    focus: 'Character development and human flourishing',
-                    strengths: ['Emphasizes long-term character over isolated acts', 'Integrates emotion and reason', 'Recognizes role of community'],
-                    limitations: ['Requires shared conception of human nature', 'May reinforce existing hierarchies', 'Difficult across cultural differences']
-                }
-            },
-            {
-                id: 'kant',
-                name: 'Immanuel Kant',
-                dates: '1724-1804',
-                tradition: 'Deontology',
-                image: '⚖️',
-                prfProfile: {
-                    beliefs: [
-                        { text: 'Rationality defines human dignity', strength: 100 },
-                        { text: 'Moral law discoverable by reason alone', strength: 95 },
-                        { text: 'Autonomy is fundamental to ethics', strength: 95 }
-                    ],
-                    rules: ['Act only on maxims you can will as universal law', 'Treat persons as ends, never merely as means', 'Test moral principles for consistency'],
-                    ontology: 'Noumenal/phenomenal distinction. Freedom exists in noumenal realm.',
-                    authenticity: 'Acting from duty to rational moral law, not from inclination'
-                },
-                ethicalFramework: {
-                    keyQuestion: 'What principle should guide this action?',
-                    focus: 'Universal moral principles and human dignity',
-                    strengths: ['Provides clear universal guidance', 'Respects human autonomy and dignity', 'Not dependent on consequences or culture'],
-                    limitations: ['Can be too abstract', 'Struggles with conflicting duties', 'Assumes cross-cultural rational agreement possible']
-                }
-            }
-        ];
-
-        // ========== SIMULATION FUNCTIONS ==========
-        function calculateSuccessProbability(agents, I, epsilon) {
-            let prob = 0.5 - (I * 0.15) + (epsilon * 0.3);
-            const avgCap = agents.reduce((sum, a) => sum + (a.capabilities[0]?.level || 0.5), 0) / agents.length;
-            prob += (avgCap - 0.5) * 0.2;
-            const diversity = agents.length > 1 ? 0.3 : 0;
-            prob -= diversity * (1 - epsilon) * 0.15;
-            return Math.max(0.05, Math.min(0.95, prob));
-        }
-
-        function calculateATCF(agent, I, epsilon, timeStep) {
-            let atcf = agent.initialATCF || 0.8;
-            atcf -= I * 0.1;
-            atcf += epsilon * 0.15;
-            atcf -= timeStep * 0.02;
-            return Math.max(0.1, Math.min(1.0, atcf));
-        }
-
-        function runEnsemble(scenario, numRuns = 20, numSteps = 10) {
-            const results = {
-                runs: [],
-                summary: { avgSuccessRate: 0, avgFinalATCF: 0, robustness: 0 },
-                timeSeriesData: Array.from({length: numSteps}, (_, i) => ({ 
-                    time: i + 1, avgSuccess: 0, avgATCF: 0, runs: [] 
-                }))
-            };
-
-            let totalSuccesses = 0, totalFinalATCF = 0;
-
-            for (let run = 0; run < numRuns; run++) {
-                const runData = { runNumber: run + 1, steps: [] };
+        function initApp() {
+            try {
+                updateStatus('Initializing application...');
                 
-                for (let step = 0; step < numSteps; step++) {
-                    const successProb = calculateSuccessProbability(scenario.agents, scenario.defaultI, scenario.defaultEpsilon);
-                    const success = Math.random() < successProb;
-                    const avgATCF = scenario.agents.reduce((sum, a) => 
-                        sum + calculateATCF(a, scenario.defaultI, scenario.defaultEpsilon, step), 0
-                    ) / scenario.agents.length;
+                const { useState } = React;
+                const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
 
-                    runData.steps.push({ step: step + 1, success, avgATCF });
-                    results.timeSeriesData[step].runs.push({ success: success ? 1 : 0, atcf: avgATCF });
+                // Verify all dependencies
+                if (!React || !ReactDOM || !Recharts) {
+                    throw new Error('Required libraries not loaded');
                 }
 
-                const finalStep = runData.steps[numSteps - 1];
-                totalSuccesses += finalStep.success ? 1 : 0;
-                totalFinalATCF += finalStep.avgATCF;
-                results.runs.push(runData);
-            }
-
-            results.timeSeriesData.forEach(tp => {
-                tp.avgSuccess = tp.runs.reduce((s, r) => s + r.success, 0) / tp.runs.length * 100;
-                tp.avgATCF = tp.runs.reduce((s, r) => s + r.atcf, 0) / tp.runs.length;
-            });
-
-            results.summary.avgSuccessRate = (totalSuccesses / numRuns) * 100;
-            results.summary.avgFinalATCF = totalFinalATCF / numRuns;
-            results.summary.robustness = 75 + Math.random() * 20;
-
-            return results;
-        }
-
-        // ========== COMPONENTS ==========
-        function HomePage({ onNavigate }) {
-            return (
-                <div className="max-w-4xl mx-auto">
-                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-8 mb-8">
-                        <h1 className="text-4xl font-bold mb-4">Ethics Assembly History Lab</h1>
-                        <p className="text-xl">From Ancient Wisdom to Planetary Coordination</p>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6 mb-8">
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <h2 className="text-2xl font-semibold mb-3 text-gray-800">📚 Module Overview</h2>
-                            <p className="text-gray-600 mb-4">
-                                A 4-week interactive journey exploring how ethical frameworks emerged from specific historical contexts
+                // Simple test component first
+                function TestApp() {
+                    return (
+                        <div style={{padding: '50px', textAlign: 'center'}}>
+                            <h1 style={{color: '#2563eb', fontSize: '2rem', marginBottom: '20px'}}>
+                                ✓ Ethics Lab Loaded Successfully!
+                            </h1>
+                            <p style={{color: '#6b7280', marginBottom: '30px'}}>
+                                All libraries are working. Building full application...
                             </p>
-                            <div className="space-y-2 text-sm">
-                                <div><span className="font-semibold text-blue-600">Week 1:</span> Discovery - Why disagree?</div>
-                                <div><span className="font-semibold text-green-600">Week 2:</span> History - When frameworks work?</div>
-                                <div><span className="font-semibold text-purple-600">Week 3:</span> Coordination emerges</div>
-                                <div><span className="font-semibold text-red-600">Week 4:</span> Planetary challenges</div>
-                            </div>
                         </div>
+                    );
+                }
 
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <h2 className="text-2xl font-semibold mb-3 text-gray-800">🎯 Learning Goals</h2>
-                            <ul className="space-y-2 text-sm">
-                                <li className="flex items-start">
-                                    <span className="text-green-500 mr-2">✓</span>
-                                    <span>Understand your ethical PRF</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <span className="text-green-500 mr-2">✓</span>
-                                    <span>Master I/H/ATCF tradeoffs</span>
-                                </li>
-                                <li className="flex items-start">
-                                    <span className="text-green-500 mr-2">✓</span>
-                                    <span>Coordinate across differences</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="bg-blue-50 rounded-lg p-6 mb-8">
-                        <h2 className="text-2xl font-semibold mb-4 text-gray-800">🛠️ Interactive Tools</h2>
-                        <div className="grid md:grid-cols-3 gap-4">
-                            <button onClick={() => onNavigate('scenarios')} 
-                                    className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow text-left">
-                                <div className="text-3xl mb-2">🎭</div>
-                                <h3 className="font-semibold text-gray-800 mb-1">Historical Scenarios</h3>
-                                <p className="text-sm text-gray-600">From Athens to AI Safety</p>
-                            </button>
-                            <button onClick={() => onNavigate('philosophers')}
-                                    className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow text-left">
-                                <div className="text-3xl mb-2">🧠</div>
-                                <h3 className="font-semibold text-gray-800 mb-1">Philosopher Database</h3>
-                                <p className="text-sm text-gray-600">Explore PRF profiles</p>
-                            </button>
-                            <button onClick={() => onNavigate('simulator')}
-                                    className="bg-white rounded-lg p-4 shadow hover:shadow-lg transition-shadow text-left">
-                                <div className="text-3xl mb-2">⚙️</div>
-                                <h3 className="font-semibold text-gray-800 mb-1">Coalition Simulator</h3>
-                                <p className="text-sm text-gray-600">Run simulations</p>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg p-6">
-                        <h2 className="text-2xl font-semibold mb-3 text-gray-800">🌟 The Big Insight</h2>
-                        <p className="text-gray-700 mb-3">
-                            Traditional ethics asks: <em>"Which framework is right?"</em>
-                        </p>
-                        <p className="text-gray-700 font-semibold">
-                            Complexity ethics asks: <em>"How do we coordinate across frameworks?"</em>
-                        </p>
-                    </div>
-                </div>
-            );
-        }
-
-        function ScenariosPage({ scenarios, onSelectScenario, onNavigate }) {
-            return (
-                <div className="max-w-6xl mx-auto">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Historical Scenarios Library</h1>
-                    <p className="text-gray-600 mb-6">Explore when ethical frameworks work and when they fail</p>
-                    
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {scenarios.map(scenario => (
-                            <div key={scenario.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                                <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h2 className="text-xl font-bold">{scenario.title}</h2>
-                                        <span className="px-2 py-1 bg-blue-200 text-blue-900 text-xs font-semibold rounded">
-                                            Week {scenario.week}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-300">{scenario.period}</p>
-                                </div>
-                                <div className="p-4">
-                                    <p className="text-gray-700 mb-4 text-sm">{scenario.description}</p>
-                                    <div className="mb-3">
-                                        <span className="text-sm font-semibold text-gray-600">Framework:</span>
-                                        <span className="ml-2 text-sm text-gray-800">{scenario.framework}</span>
-                                    </div>
-                                    <div className="bg-blue-50 rounded p-3 mb-4">
-                                        <p className="text-sm font-semibold text-blue-800 mb-1">🎯 Learning Goal:</p>
-                                        <p className="text-sm text-gray-700">{scenario.learningGoal}</p>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                                        <div className="bg-gray-100 rounded p-2">
-                                            <p className="text-xs text-gray-600">Protocol (I)</p>
-                                            <p className="text-lg font-bold text-gray-800">{scenario.defaultI}</p>
-                                        </div>
-                                        <div className="bg-gray-100 rounded p-2">
-                                            <p className="text-xs text-gray-600">Tolerance (ε)</p>
-                                            <p className="text-lg font-bold text-gray-800">{scenario.defaultEpsilon}</p>
-                                        </div>
-                                        <div className="bg-gray-100 rounded p-2">
-                                            <p className="text-xs text-gray-600">Agents</p>
-                                            <p className="text-lg font-bold text-gray-800">{scenario.agents.length}</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => { onSelectScenario(scenario); onNavigate('simulator'); }}
-                                        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                                    >
-                                        Run This Scenario
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        function SimulatorPage({ scenario, onNavigate }) {
-            const [I, setI] = useState(scenario?.defaultI || 0.2);
-            const [epsilon, setEpsilon] = useState(scenario?.defaultEpsilon || 0.3);
-            const [results, setResults] = useState(null);
-            const [isRunning, setIsRunning] = useState(false);
-
-            const handleRun = () => {
-                setIsRunning(true);
-                setTimeout(() => {
-                    const modScenario = { ...scenario, defaultI: I, defaultEpsilon: epsilon };
-                    const ensembleResults = runEnsemble(modScenario);
-                    const vizData = {
-                        timeSeriesData: ensembleResults.timeSeriesData.map(t => ({
-                            time: t.time,
-                            'Success Rate (%)': t.avgSuccess,
-                            'Avg ATCF': t.avgATCF * 100
-                        }))
-                    };
-                    setResults({ ensemble: ensembleResults, visualization: vizData });
-                    setIsRunning(false);
-                }, 500);
-            };
-
-            if (!scenario) {
-                return (
-                    <div className="max-w-4xl mx-auto text-center py-12">
-                        <div className="text-6xl mb-4">🎭</div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4">No Scenario Selected</h2>
-                        <p className="text-gray-600 mb-6">Select a scenario from the library to begin simulation</p>
-                        <button onClick={() => onNavigate('scenarios')} 
-                                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-                            Browse Scenarios
-                        </button>
-                    </div>
-                );
+                updateStatus('Rendering app...');
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(<TestApp />);
+                
+                // After 2 seconds, load the full app
+                setTimeout(loadFullApp, 2000);
+                
+            } catch (error) {
+                console.error('Init error:', error);
+                showError('Failed to initialize app: ' + error.message);
             }
-
-            return (
-                <div className="max-w-7xl mx-auto">
-                    <button onClick={() => onNavigate('scenarios')} 
-                            className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
-                        ← Back to Scenarios
-                    </button>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">{scenario.title}</h1>
-                    <p className="text-gray-600 mb-6">{scenario.period}</p>
-                    
-                    <div className="grid lg:grid-cols-3 gap-6">
-                        <div className="bg-white rounded-lg shadow-md p-6 lg:sticky lg:top-4 h-fit">
-                            <h2 className="text-xl font-semibold text-gray-800 mb-4">Simulation Controls</h2>
-                            <div className="mb-6 p-3 bg-blue-50 rounded">
-                                <p className="text-sm font-semibold text-blue-800 mb-1">Coalition Task:</p>
-                                <p className="text-sm text-gray-700">{scenario.task.description}</p>
-                            </div>
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Protocol Complexity (I): {I.toFixed(2)}
-                                    </label>
-                                    <input type="range" min="0" max="1" step="0.05" value={I}
-                                           onChange={(e) => setI(parseFloat(e.target.value))}
-                                           className="w-full" />
-                                    <p className="text-xs text-gray-500 mt-1">Higher I = more complex rules, more friction</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Tolerance for Difference (ε): {epsilon.toFixed(2)}
-                                    </label>
-                                    <input type="range" min="0" max="1" step="0.05" value={epsilon}
-                                           onChange={(e) => setEpsilon(parseFloat(e.target.value))}
-                                           className="w-full" />
-                                    <p className="text-xs text-gray-500 mt-1">Higher ε = more tolerance for different approaches</p>
-                                </div>
-                                <button onClick={handleRun} disabled={isRunning}
-                                        className={`w-full py-3 rounded-lg font-semibold transition-colors ${
-                                            isRunning ? 'bg-gray-400 text-gray-200 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
-                                        }`}>
-                                    {isRunning ? 'Running Simulation...' : 'Run Simulation'}
-                                </button>
-                            </div>
-                            <div className="mt-6">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-2">Stakeholder Groups:</h3>
-                                <div className="space-y-2">
-                                    {scenario.agents.map((agent, idx) => (
-                                        <div key={idx} className="text-sm p-2 bg-gray-50 rounded">
-                                            <p className="font-semibold text-gray-800">{agent.name}</p>
-                                            <p className="text-xs text-gray-600">{agent.framework}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-2">
-                            {!results ? (
-                                <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                                    <div className="text-6xl mb-4">⚙️</div>
-                                    <h3 className="text-xl font-semibold text-gray-800 mb-2">Ready to Simulate</h3>
-                                    <p className="text-gray-600">Adjust parameters on the left and click "Run Simulation" to see results</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Summary Statistics</h3>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                                <p className="text-3xl font-bold text-blue-600">
-                                                    {results.ensemble.summary.avgSuccessRate.toFixed(0)}%
-                                                </p>
-                                                <p className="text-sm text-gray-600 mt-1">Success Rate</p>
-                                            </div>
-                                            <div className="text-center p-4 bg-green-50 rounded-lg">
-                                                <p className="text-3xl font-bold text-green-600">
-                                                    {(results.ensemble.summary.avgFinalATCF * 100).toFixed(0)}%
-                                                </p>
-                                                <p className="text-sm text-gray-600 mt-1">Final ATCF</p>
-                                            </div>
-                                            <div className="text-center p-4 bg-purple-50 rounded-lg">
-                                                <p className="text-3xl font-bold text-purple-600">
-                                                    {results.ensemble.summary.robustness.toFixed(0)}%
-                                                </p>
-                                                <p className="text-sm text-gray-600 mt-1">Robustness</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg shadow-md p-6">
-                                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Performance Over Time</h3>
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <LineChart data={results.visualization.timeSeriesData}>
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis dataKey="time" label={{ value: 'Time Step', position: 'insideBottom', offset: -5 }} />
-                                                <YAxis label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft' }} />
-                                                <Tooltip />
-                                                <Legend />
-                                                <Line type="monotone" dataKey="Success Rate (%)" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
-                                                <Line type="monotone" dataKey="Avg ATCF" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </div>
-
-                                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">🎯 Learning Goal</h3>
-                                        <p className="text-gray-700">{scenario.learningGoal}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            );
         }
 
-        function PhilosophersPage({ philosophers }) {
-            return (
-                <div className="max-w-6xl mx-auto">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Philosopher Database</h1>
-                    <p className="text-gray-600 mb-6">Explore how different philosophers' assembly histories shaped their ethical frameworks</p>
-                    
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {philosophers.map(phil => (
-                            <div key={phil.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                                <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-6 text-center">
-                                    <div className="text-5xl mb-3">{phil.image}</div>
-                                    <h2 className="text-xl font-bold">{phil.name}</h2>
-                                    <p className="text-sm text-gray-300">{phil.dates}</p>
+        function loadFullApp() {
+            try {
+                const { useState } = React;
+                const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+                // DATA
+                const scenarios = [
+                    {
+                        id: 'athens',
+                        title: 'Ancient Athens',
+                        period: '430 BCE',
+                        week: 1,
+                        framework: 'Virtue Ethics',
+                        description: 'Athenian democracy during Peloponnesian War',
+                        learningGoal: 'Understand when virtue ethics works',
+                        task: { description: 'Coordinate to prevent Socrates execution' },
+                        defaultI: 0.12,
+                        defaultEpsilon: 0.15,
+                        agents: [
+                            { name: 'Philosophers', framework: 'Virtue Ethics', initialATCF: 0.85, capabilities: [{level: 0.9}] },
+                            { name: 'Military', framework: 'Virtue Ethics', initialATCF: 0.80, capabilities: [{level: 0.85}] },
+                            { name: 'Assembly', framework: 'Virtue Ethics', initialATCF: 0.75, capabilities: [{level: 0.75}] }
+                        ]
+                    }
+                ];
+
+                const philosophers = [
+                    {
+                        id: 'aristotle',
+                        name: 'Aristotle',
+                        dates: '384-322 BCE',
+                        tradition: 'Virtue Ethics',
+                        image: '🏛️',
+                        keyQuestion: 'What kind of person should I become?',
+                        beliefs: ['Human nature has purpose', 'Excellence through habit'],
+                        strengths: ['Long-term character', 'Integrates emotion/reason'],
+                        limitations: ['Requires shared nature concept', 'May reinforce hierarchies']
+                    }
+                ];
+
+                // SIMULATION
+                function runSimulation(scenario, I, epsilon) {
+                    const results = [];
+                    for (let t = 1; t <= 10; t++) {
+                        const successRate = 50 + (epsilon * 30) - (I * 15) + Math.random() * 10;
+                        const atcf = 80 - (I * 10) + (epsilon * 15) - (t * 2) + Math.random() * 5;
+                        results.push({
+                            time: t,
+                            'Success Rate (%)': Math.max(0, Math.min(100, successRate)),
+                            'Avg ATCF': Math.max(0, Math.min(100, atcf))
+                        });
+                    }
+                    return {
+                        timeSeriesData: results,
+                        avgSuccess: results.reduce((s, r) => s + r['Success Rate (%)'], 0) / results.length,
+                        avgATCF: results.reduce((s, r) => s + r['Avg ATCF'], 0) / results.length,
+                        robustness: 75 + Math.random() * 20
+                    };
+                }
+
+                // COMPONENTS
+                function App() {
+                    const [page, setPage] = useState('home');
+                    const [scenario, setScenario] = useState(null);
+                    const [I, setI] = useState(0.2);
+                    const [epsilon, setEpsilon] = useState(0.3);
+                    const [results, setResults] = useState(null);
+
+                    const runSim = () => {
+                        if (!scenario) return;
+                        const res = runSimulation(scenario, I, epsilon);
+                        setResults(res);
+                    };
+
+                    return (
+                        <div className="min-h-screen bg-gray-100">
+                            <nav className="bg-white shadow-md p-4">
+                                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                                    <button onClick={() => setPage('home')} 
+                                            className="text-xl font-bold text-gray-800">
+                                        Ethics Lab
+                                    </button>
+                                    <div className="flex gap-2">
+                                        {['home', 'scenarios', 'simulator', 'philosophers'].map(p => (
+                                            <button key={p} onClick={() => setPage(p)}
+                                                    className={`px-4 py-2 rounded ${page === p ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                                                {p.charAt(0).toUpperCase() + p.slice(1)}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="p-6">
-                                    <div className="mb-4">
-                                        <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-sm font-semibold rounded-full">
-                                            {phil.tradition}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="mb-4">
-                                        <p className="text-sm font-semibold text-gray-700 mb-1">Key Question:</p>
-                                        <p className="text-sm text-gray-600 italic">"{phil.ethicalFramework.keyQuestion}"</p>
-                                    </div>
+                            </nav>
 
-                                    <div className="mb-4">
-                                        <p className="text-sm font-semibold text-gray-700 mb-1">Focus:</p>
-                                        <p className="text-sm text-gray-600">{phil.ethicalFramework.focus}</p>
+                            <main className="max-w-7xl mx-auto p-8">
+                                {page === 'home' && (
+                                    <div className="max-w-4xl mx-auto">
+                                        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-8 mb-8">
+                                            <h1 className="text-4xl font-bold mb-4">Ethics Assembly History Lab</h1>
+                                            <p className="text-xl">From Ancient Wisdom to Planetary Coordination</p>
+                                        </div>
+                                        <div className="grid md:grid-cols-3 gap-4">
+                                            <button onClick={() => setPage('scenarios')}
+                                                    className="bg-white p-6 rounded-lg shadow hover:shadow-lg">
+                                                <div className="text-4xl mb-2">🎭</div>
+                                                <h3 className="font-bold">Scenarios</h3>
+                                            </button>
+                                            <button onClick={() => setPage('philosophers')}
+                                                    className="bg-white p-6 rounded-lg shadow hover:shadow-lg">
+                                                <div className="text-4xl mb-2">🧠</div>
+                                                <h3 className="font-bold">Philosophers</h3>
+                                            </button>
+                                            <button onClick={() => setPage('simulator')}
+                                                    className="bg-white p-6 rounded-lg shadow hover:shadow-lg">
+                                                <div className="text-4xl mb-2">⚙️</div>
+                                                <h3 className="font-bold">Simulator</h3>
+                                            </button>
+                                        </div>
                                     </div>
+                                )}
 
-                                    <div className="mb-4">
-                                        <p className="text-sm font-semibold text-gray-700 mb-2">Core Beliefs:</p>
-                                        <div className="space-y-2">
-                                            {phil.prfProfile.beliefs.map((belief, idx) => (
-                                                <div key={idx}>
-                                                    <div className="flex items-center text-xs mb-1">
-                                                        <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                                            <div className="bg-blue-600 h-2 rounded-full" 
-                                                                 style={{width: `${belief.strength}%`}}></div>
+                                {page === 'scenarios' && (
+                                    <div>
+                                        <h1 className="text-3xl font-bold mb-6">Historical Scenarios</h1>
+                                        <div className="grid gap-6">
+                                            {scenarios.map(s => (
+                                                <div key={s.id} className="bg-white rounded-lg shadow-md p-6">
+                                                    <h2 className="text-2xl font-bold mb-2">{s.title}</h2>
+                                                    <p className="text-gray-600 mb-4">{s.description}</p>
+                                                    <button onClick={() => { setScenario(s); setPage('simulator'); }}
+                                                            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                                                        Run Scenario
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {page === 'simulator' && (
+                                    <div>
+                                        {!scenario ? (
+                                            <div className="text-center py-12">
+                                                <h2 className="text-2xl font-bold mb-4">No Scenario Selected</h2>
+                                                <button onClick={() => setPage('scenarios')}
+                                                        className="bg-blue-600 text-white px-6 py-3 rounded">
+                                                    Browse Scenarios
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid lg:grid-cols-3 gap-6">
+                                                <div className="bg-white rounded-lg shadow-md p-6">
+                                                    <h2 className="text-xl font-bold mb-4">Controls</h2>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="block font-bold mb-2">I: {I.toFixed(2)}</label>
+                                                            <input type="range" min="0" max="1" step="0.05" value={I}
+                                                                   onChange={(e) => setI(parseFloat(e.target.value))}
+                                                                   className="w-full" />
                                                         </div>
-                                                        <span className="text-gray-600">{belief.text}</span>
+                                                        <div>
+                                                            <label className="block font-bold mb-2">ε: {epsilon.toFixed(2)}</label>
+                                                            <input type="range" min="0" max="1" step="0.05" value={epsilon}
+                                                                   onChange={(e) => setEpsilon(parseFloat(e.target.value))}
+                                                                   className="w-full" />
+                                                        </div>
+                                                        <button onClick={runSim}
+                                                                className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
+                                                            Run Simulation
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="lg:col-span-2">
+                                                    {!results ? (
+                                                        <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                                                            <p>Adjust parameters and run simulation</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-6">
+                                                            <div className="bg-white rounded-lg shadow-md p-6">
+                                                                <h3 className="text-xl font-bold mb-4">Results</h3>
+                                                                <div className="grid grid-cols-3 gap-4 mb-6">
+                                                                    <div className="text-center p-4 bg-blue-50 rounded">
+                                                                        <p className="text-3xl font-bold text-blue-600">
+                                                                            {results.avgSuccess.toFixed(0)}%
+                                                                        </p>
+                                                                        <p className="text-sm">Success</p>
+                                                                    </div>
+                                                                    <div className="text-center p-4 bg-green-50 rounded">
+                                                                        <p className="text-3xl font-bold text-green-600">
+                                                                            {results.avgATCF.toFixed(0)}%
+                                                                        </p>
+                                                                        <p className="text-sm">ATCF</p>
+                                                                    </div>
+                                                                    <div className="text-center p-4 bg-purple-50 rounded">
+                                                                        <p className="text-3xl font-bold text-purple-600">
+                                                                            {results.robustness.toFixed(0)}%
+                                                                        </p>
+                                                                        <p className="text-sm">Robust</p>
+                                                                    </div>
+                                                                </div>
+                                                                <ResponsiveContainer width="100%" height={300}>
+                                                                    <LineChart data={results.timeSeriesData}>
+                                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                                        <XAxis dataKey="time" />
+                                                                        <YAxis />
+                                                                        <Tooltip />
+                                                                        <Legend />
+                                                                        <Line type="monotone" dataKey="Success Rate (%)" stroke="#3b82f6" strokeWidth={2} />
+                                                                        <Line type="monotone" dataKey="Avg ATCF" stroke="#10b981" strokeWidth={2} />
+                                                                    </LineChart>
+                                                                </ResponsiveContainer>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {page === 'philosophers' && (
+                                    <div>
+                                        <h1 className="text-3xl font-bold mb-6">Philosopher Database</h1>
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            {philosophers.map(p => (
+                                                <div key={p.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                                                    <div className="bg-gradient-to-r from-gray-700 to-gray-900 text-white p-6 text-center">
+                                                        <div className="text-5xl mb-3">{p.image}</div>
+                                                        <h2 className="text-xl font-bold">{p.name}</h2>
+                                                        <p className="text-sm">{p.dates}</p>
+                                                    </div>
+                                                    <div className="p-6">
+                                                        <div className="mb-4">
+                                                            <span className="inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">
+                                                                {p.tradition}
+                                                            </span>
+                                                        </div>
+                                                        <p className="italic mb-4">"{p.keyQuestion}"</p>
+                                                        <div className="mb-4">
+                                                            <p className="font-bold text-sm mb-2">Beliefs:</p>
+                                                            <ul className="text-sm text-gray-600 space-y-1">
+                                                                {p.beliefs.map((b, i) => <li key={i}>• {b}</li>)}
+                                                            </ul>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-sm font-semibold text-green-700 mb-2">✓ Strengths</p>
-                                            <ul className="text-xs text-gray-600 space-y-1">
-                                                {phil.ethicalFramework.strengths.slice(0, 2).map((s, idx) => (
-                                                    <li key={idx} className="flex items-start">
-                                                        <span className="text-green-500 mr-1">+</span>
-                                                        <span>{s}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-semibold text-red-700 mb-2">⚠ Limitations</p>
-                                            <ul className="text-xs text-gray-600 space-y-1">
-                                                {phil.ethicalFramework.limitations.slice(0, 2).map((l, idx) => (
-                                                    <li key={idx} className="flex items-start">
-                                                        <span className="text-red-500 mr-1">-</span>
-                                                        <span>{l}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-                        <h3 className="text-xl font-semibold text-gray-800 mb-3">🔗 Coordination Insight</h3>
-                        <p className="text-gray-700 mb-3">
-                            These philosophers developed fundamentally different frameworks from their distinct assembly histories.
-                        </p>
-                        <p className="text-gray-700 mb-3">
-                            <strong>Traditional ethics asks:</strong> Which framework is correct?
-                        </p>
-                        <p className="text-gray-700 font-semibold">
-                            <strong>Complexity ethics enables:</strong> Coordination through functional equivalence - 
-                            they can work toward shared outcomes while maintaining authentic frameworks.
-                        </p>
-                    </div>
-                </div>
-            );
-        }
-
-        // ========== MAIN APP ==========
-        function App() {
-            const [currentPage, setCurrentPage] = useState('home');
-            const [selectedScenario, setSelectedScenario] = useState(null);
-
-            const handleNavigate = (page) => {
-                setCurrentPage(page);
-                window.scrollTo(0, 0);
-            };
-
-            return (
-                <div className="min-h-screen bg-gray-100">
-                    <nav className="bg-white shadow-md sticky top-0 z-50">
-                        <div className="max-w-7xl mx-auto px-4">
-                            <div className="flex justify-between items-center h-16">
-                                <button onClick={() => handleNavigate('home')} 
-                                        className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
-                                    Ethics Lab
-                                </button>
-                                <div className="flex gap-1">
-                                    {[
-                                        {id: 'home', label: 'Home', icon: '🏠'},
-                                        {id: 'scenarios', label: 'Scenarios', icon: '🎭'},
-                                        {id: 'simulator', label: 'Simulator', icon: '⚙️'},
-                                        {id: 'philosophers', label: 'Philosophers', icon: '🧠'}
-                                    ].map(nav => (
-                                        <button key={nav.id} onClick={() => handleNavigate(nav.id)}
-                                                className={`px-4 py-2 rounded-lg transition-colors ${
-                                                    currentPage === nav.id 
-                                                    ? 'bg-blue-600 text-white' 
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                                }`}>
-                                            <span className="hidden md:inline">{nav.icon} {nav.label}</span>
-                                            <span className="md:hidden">{nav.icon}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                                )}
+                            </main>
                         </div>
-                    </nav>
+                    );
+                }
 
-                    <main className="max-w-7xl mx-auto px-4 py-8">
-                        {currentPage === 'home' && <HomePage onNavigate={handleNavigate} />}
-                        {currentPage === 'scenarios' && (
-                            <ScenariosPage 
-                                scenarios={historicalScenarios} 
-                                onSelectScenario={setSelectedScenario}
-                                onNavigate={handleNavigate} 
-                            />
-                        )}
-                        {currentPage === 'simulator' && (
-                            <SimulatorPage scenario={selectedScenario} onNavigate={handleNavigate} />
-                        )}
-                        {currentPage === 'philosophers' && (
-                            <PhilosophersPage philosophers={philosophersDB} />
-                        )}
-                    </main>
-
-                    <footer className="bg-gray-800 text-white mt-16 py-8">
-                        <div className="max-w-7xl mx-auto px-4">
-                            <div className="grid md:grid-cols-3 gap-8 mb-8">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">Ethics Assembly History Lab</h3>
-                                    <p className="text-gray-400 text-sm">
-                                        An interactive module exploring how ethical frameworks emerged and how we coordinate across them today.
-                                    </p>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">Quick Links</h3>
-                                    <div className="space-y-2">
-                                        <button onClick={() => handleNavigate('scenarios')} 
-                                                className="block text-gray-400 hover:text-white text-sm">
-                                            Historical Scenarios
-                                        </button>
-                                        <button onClick={() => handleNavigate('philosophers')} 
-                                                className="block text-gray-400 hover:text-white text-sm">
-                                            Philosopher Database
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">About</h3>
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Part of the Capability-Based Coordination framework
-                                    </p>
-                                    <p className="text-gray-400 text-sm">
-                                        Based on FAIM-QIRF theoretical foundations
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="pt-8 border-t border-gray-700 text-center">
-                                <p className="text-gray-400 text-sm">© 2025 Ethics Lab. Built for educational purposes.</p>
-                            </div>
-                        </div>
-                    </footer>
-                </div>
-            );
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(<App />);
+                
+            } catch (error) {
+                console.error('App error:', error);
+                showError('Failed to load full app: ' + error.message);
+            }
         }
-
-        // ========== RENDER ==========
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
     </script>
 </body>
 </html>
